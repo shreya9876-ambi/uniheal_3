@@ -144,7 +144,7 @@ router.delete('/users/:id', async (req, res) => {
   }
 });
 
-// 5. Dynamic Platform Statistics
+// 5. Dynamic Platform Statistics & Analytics
 router.get('/stats', async (req, res) => {
   try {
     const totalStudents = await User.countDocuments({ role: 'student' });
@@ -152,6 +152,71 @@ router.get('/stats', async (req, res) => {
     const totalAdmins = await User.countDocuments({ role: 'admin' });
     const totalAppointments = await Appointment.countDocuments();
     const pendingAppointments = await Appointment.countDocuments({ status: 'pending' });
+    const confirmedAppointments = await Appointment.countDocuments({ status: 'confirmed' });
+    const completedAppointments = await Appointment.countDocuments({ status: 'completed' });
+    const cancelledAppointments = await Appointment.countDocuments({ status: 'cancelled' });
+
+    // 1. Real Student Status Breakdown (Active vs Inactive)
+    const activeStudents = await User.countDocuments({ role: 'student', status: 'active' });
+    const inactiveStudents = await User.countDocuments({ role: 'student', status: 'inactive' });
+
+    // 2. Real Counsellor Status Breakdown
+    const activeCounsellors = await User.countDocuments({ role: 'counsellor', status: 'active' });
+    const inactiveCounsellors = await User.countDocuments({ role: 'counsellor', status: 'inactive' });
+
+    // 3. Real Student Department Breakdown
+    const rawDeptStats = await User.aggregate([
+      { $match: { role: 'student' } },
+      { 
+        $group: { 
+          _id: { $cond: [{ $or: [{ $eq: ["$department", ""] }, { $not: ["$department"] }] }, "General / Undeclared", "$department"] }, 
+          count: { $sum: 1 } 
+        } 
+      },
+      { $sort: { count: -1 } }
+    ]);
+
+    const departmentStats = rawDeptStats.map(d => ({
+      name: d._id,
+      students: d.count,
+    }));
+
+    // 4. Real Appointment Status Breakdown
+    const rawApptStats = await Appointment.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    const apptMap = {};
+    rawApptStats.forEach(item => { apptMap[item._id] = item.count; });
+
+    const appointmentStatusStats = [
+      { name: 'Confirmed', count: apptMap['confirmed'] || 0, color: '#10B981' },
+      { name: 'Pending Approval', count: apptMap['pending'] || 0, color: '#F59E0B' },
+      { name: 'Completed', count: apptMap['completed'] || 0, color: '#3B82F6' },
+      { name: 'Cancelled', count: apptMap['cancelled'] || 0, color: '#EF4444' },
+    ];
+
+    // 5. Real Appointment Urgency Breakdown
+    const rawUrgencyStats = await Appointment.aggregate([
+      { $group: { _id: "$urgency", count: { $sum: 1 } } }
+    ]);
+    const urgencyMap = {};
+    rawUrgencyStats.forEach(item => { urgencyMap[item._id] = item.count; });
+
+    const urgencyStats = [
+      { level: 'Normal', count: urgencyMap['normal'] || 0, color: '#10B981' },
+      { level: 'Moderate', count: urgencyMap['moderate'] || 0, color: '#3B82F6' },
+      { level: 'High', count: urgencyMap['high'] || 0, color: '#F59E0B' },
+      { level: 'Critical', count: urgencyMap['critical'] || 0, color: '#EF4444' },
+    ];
+
+    // 6. Real Appointment Mode Breakdown
+    const rawModeStats = await Appointment.aggregate([
+      { $group: { _id: "$mode", count: { $sum: 1 } } }
+    ]);
+    const modeStats = rawModeStats.map(m => ({
+      mode: m._id || 'In-Person',
+      count: m.count,
+    }));
 
     res.json({
       metrics: {
@@ -160,6 +225,17 @@ router.get('/stats', async (req, res) => {
         totalAdmins,
         totalAppointments,
         pendingAppointments,
+        confirmedAppointments,
+        completedAppointments,
+        cancelledAppointments,
+        activeStudents,
+        inactiveStudents,
+        activeCounsellors,
+        inactiveCounsellors,
+        departmentStats,
+        appointmentStatusStats,
+        urgencyStats,
+        modeStats,
       },
     });
   } catch (err) {

@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LogIn, Leaf, Headphones, Shield, Brain, Heart, Activity, Calendar, Clock, CheckCircle, Plus, Trophy, Target, Award, Zap, Star, Crown, Sparkles, AlertTriangle, RefreshCw, UserCheck, MapPin, Video, Building } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import sproutCharacter from "@/assets/sprout-character.png";
 import ChatBot from "@/components/ChatBot";
 import EmergencyResources from "@/components/EmergencyResources";
 import QuickResources from "@/components/QuickResources";
@@ -41,6 +40,24 @@ const StudentPortal = () => {
 
   const [sessions, setSessions] = useState<AppointmentItem[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
+
+  // Persistent confidential assessment status
+  const [assessmentResult, setAssessmentResult] = useState<{
+    academicStress: number;
+    moodMotivation: number;
+    suicidalRisk: number;
+    totalScore: number;
+    riskLevel: 'Low' | 'Moderate' | 'High' | 'Critical';
+    dateTaken: string;
+  } | null>(() => {
+    const u = getStoredUser();
+    const key = `uniheal_assessment_${u?.id || u?._id || 'guest'}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try { return JSON.parse(saved); } catch { return null; }
+    }
+    return null;
+  });
 
   // Load counsellors on component mount
   useEffect(() => {
@@ -303,15 +320,6 @@ const StudentPortal = () => {
                 <Activity className="h-4 w-4" />
                 My Sessions
               </Button>
-              <Button
-                variant="ghost"
-                onClick={handleOpenGeneralBooking}
-                size="sm"
-                className="gap-2 bg-primary/10 hover:bg-primary/20 text-primary font-medium"
-              >
-                <Plus className="h-4 w-4" />
-                Book Session
-              </Button>
             </div>
 
             <Button 
@@ -460,31 +468,51 @@ const StudentPortal = () => {
           onRefresh={fetchCounsellors}
         />
 
-        {/* My Sessions & Quick Actions Section */}
+        {/* My Sessions & Status Overview Section */}
         <section id="calendar-section" className="grid lg:grid-cols-2 gap-6">
-          {/* Calendar */}
+          {/* Calendar / Sessions List */}
           <Card className="bg-gradient-card shadow-card">
             <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Calendar className="h-6 w-6" />
-                My Sessions
-              </CardTitle>
-              <CardDescription>
-                Track your upcoming and past counseling sessions
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    My Sessions
+                  </CardTitle>
+                  <CardDescription>
+                    Your booked, confirmed, and past counseling appointments
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+                  {sessions.length} {sessions.length === 1 ? 'Booking' : 'Bookings'}
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {loadingSessions ? (
-                  <div className="py-8 text-center text-muted-foreground flex flex-col items-center gap-2">
+                  <div className="py-12 text-center text-muted-foreground flex flex-col items-center gap-2">
                     <RefreshCw className="h-5 w-5 animate-spin text-primary" />
                     <span className="text-sm">Loading sessions...</span>
                   </div>
                 ) : sessions.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground">
-                    <Calendar className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm font-medium">No sessions yet</p>
-                    <p className="text-xs">Book your first counseling session below</p>
+                  <div className="py-10 text-center text-muted-foreground">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Calendar className="h-6 w-6 text-primary" />
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">No Sessions Scheduled</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1">
+                      You haven't scheduled any sessions yet. Browse the registered counsellors directory above to book an appointment with a counselor of your choice.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => scrollToSection('counsellors-section')}
+                      className="mt-4 gap-2 text-xs"
+                    >
+                      <UserCheck className="h-3.5 w-3.5 text-primary" />
+                      Browse Counsellors
+                    </Button>
                   </div>
                 ) : (
                   sessions.map((session) => (
@@ -495,18 +523,25 @@ const StudentPortal = () => {
                           ? 'bg-emerald-50/70 border-emerald-200' 
                           : session.status === 'completed'
                           ? 'bg-gray-50 border-gray-200'
+                          : session.status === 'cancelled'
+                          ? 'bg-rose-50/60 border-rose-200'
                           : 'bg-blue-50/70 border-blue-200'
                       } hover:shadow-sm`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold text-sm text-gray-900">
                               {session.counselorName || 'Assigned Counsellor'}
                             </p>
                             <Badge variant="outline" className="text-[10px] bg-white">
                               {session.mode || 'In-Person'}
                             </Badge>
+                            {session.urgency && session.urgency !== 'normal' && (
+                              <Badge className="text-[10px] bg-amber-100 text-amber-800 border-amber-200 capitalize">
+                                {session.urgency} Priority
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1 font-medium text-gray-700">
@@ -524,7 +559,7 @@ const StudentPortal = () => {
                             </p>
                           )}
                           {session.notes && (
-                            <p className="text-xs text-teal-800 bg-teal-100/50 p-1.5 rounded mt-1">
+                            <p className="text-xs text-teal-800 bg-teal-100/50 p-2 rounded mt-1.5 border border-teal-200/50">
                               <strong>Counsellor Note:</strong> {session.notes}
                             </p>
                           )}
@@ -535,6 +570,8 @@ const StudentPortal = () => {
                               ? 'bg-emerald-600 text-white' 
                               : session.status === 'completed' 
                               ? 'bg-gray-600 text-white'
+                              : session.status === 'cancelled'
+                              ? 'bg-rose-600 text-white'
                               : 'bg-amber-500 text-white'
                           }
                         >
@@ -544,138 +581,85 @@ const StudentPortal = () => {
                     </div>
                   ))
                 )}
-                
-                <div className="text-center pt-4">
-                  <Button 
-                    onClick={handleOpenGeneralBooking}
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Book New Session
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>
           
-          {/* Character Growth & Achievement Badges */}
-          <Card className="bg-gradient-card shadow-card overflow-hidden">
+          {/* Real Session Status & Progress Overview */}
+          <Card className="bg-gradient-card shadow-card">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
-                <Sparkles className="h-6 w-6" />
-                Growing Your Sprout
+                <Activity className="h-5 w-5 text-primary" />
+                Session Status & Journey
               </CardTitle>
               <CardDescription>
-                Build your mental wellness character through daily actions
+                Live overview of your appointment statuses and counseling engagement
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Character Level Progress */}
-                <div className="text-center relative">
-                  <div className="relative inline-block">
-                    <img 
-                      src={sproutCharacter} 
-                      alt="Your growing sprout character" 
-                      className="w-20 h-20 mx-auto mb-2 rounded-full bg-gradient-to-br from-green-100 to-green-200 p-2"
-                    />
-                    <Badge className="absolute -top-1 -right-1 bg-yellow-500 text-white px-2 py-1 text-xs">
-                      <Crown className="w-3 h-3 mr-1" />
-                      Lvl 4
-                    </Badge>
-                  </div>
-                  <div className="mb-2">
-                    <span className="text-sm font-medium">Mental Health Journey</span>
-                    <div className="flex items-center justify-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">60 / 100 XP</span>
-                    </div>
-                  </div>
-                  <Progress value={60} className="h-3 bg-green-100" />
+            <CardContent className="space-y-6">
+              {/* Real Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 bg-white/70 rounded-xl border border-border/50 text-center">
+                  <div className="text-2xl font-bold text-foreground">{sessions.length}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Total Booked</div>
                 </div>
-
-                {/* Achievement Widgets Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Journaling Streak */}
-                  <div 
-                    className="bg-gradient-to-br from-purple-400 to-purple-600 p-4 rounded-xl text-white hover-scale cursor-pointer relative overflow-hidden"
-                    onClick={() => scrollToSection('resources-section')}
-                  >
-                    <div className="absolute top-2 right-2">
-                      <Zap className="h-4 w-4 text-yellow-300" />
-                    </div>
-                    <div className="text-lg font-bold">7 days</div>
-                    <div className="text-xs opacity-90">Journaling</div>
-                    <div className="text-xs opacity-75 mt-1">Don't stop!</div>
-                    <Badge className="absolute bottom-2 right-2 bg-white/20 text-white text-xs px-2">
-                      <Trophy className="w-3 h-3 mr-1" />
-                      Streak
-                    </Badge>
+                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-center">
+                  <div className="text-2xl font-bold text-emerald-700">
+                    {sessions.filter(s => s.status === 'confirmed').length}
                   </div>
-
-                  {/* Meditation Master */}
-                  <div 
-                    className="bg-gradient-to-br from-blue-400 to-blue-600 p-4 rounded-xl text-white hover-scale cursor-pointer relative overflow-hidden"
-                    onClick={() => setShowBookingModal(true)}
-                  >
-                    <div className="absolute top-2 right-2">
-                      <Star className="h-4 w-4 text-yellow-300" />
-                    </div>
-                    <div className="text-lg font-bold">5 days</div>
-                    <div className="text-xs opacity-90">Meditation</div>
-                    <div className="text-xs opacity-75 mt-1">Mindful warrior</div>
-                    <Badge className="absolute bottom-2 right-2 bg-white/20 text-white text-xs px-2">
-                      <Heart className="w-3 h-3 mr-1" />
-                      Active
-                    </Badge>
-                  </div>
-
-                  {/* Session Champion */}
-                  <div 
-                    className="bg-gradient-to-br from-green-400 to-green-600 p-4 rounded-xl text-white hover-scale cursor-pointer relative overflow-hidden"
-                    onClick={() => setShowAssessment(true)}
-                  >
-                    <div className="absolute top-2 right-2">
-                      <Crown className="h-4 w-4 text-yellow-300" />
-                    </div>
-                    <div className="text-lg font-bold">3 sessions</div>
-                    <div className="text-xs opacity-90">Attended</div>
-                    <div className="text-xs opacity-75 mt-1">Champion</div>
-                    <Badge className="absolute bottom-2 right-2 bg-white/20 text-white text-xs px-2">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      Booked
-                    </Badge>
-                  </div>
-
-                  {/* Wellness Explorer */}
-                  <div 
-                    className="bg-gradient-to-br from-orange-400 to-orange-600 p-4 rounded-xl text-white hover-scale cursor-pointer relative overflow-hidden"
-                    onClick={() => scrollToSection('chat-section')}
-                  >
-                    <div className="absolute top-2 right-2">
-                      <Sparkles className="h-4 w-4 text-yellow-300" />
-                    </div>
-                    <div className="text-lg font-bold">Explorer</div>
-                    <div className="text-xs opacity-90">Wellness</div>
-                    <div className="text-xs opacity-75 mt-1">Keep going!</div>
-                    <Badge className="absolute bottom-2 right-2 bg-white/20 text-white text-xs px-2">
-                      <Headphones className="w-3 h-3 mr-1" />
-                      Chat
-                    </Badge>
-                  </div>
+                  <div className="text-xs text-emerald-800 mt-0.5">Confirmed</div>
                 </div>
-                
-                {/* Crisis Support */}
-                <div className="bg-red-50 border border-red-200 p-4 rounded-lg text-center">
-                  <Shield className="h-6 w-6 text-red-600 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-red-800 mb-1">Crisis Support Available</p>
-                  <p className="text-xs text-red-600">24/7 emergency mental health assistance</p>
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-center">
+                  <div className="text-2xl font-bold text-amber-700">
+                    {sessions.filter(s => s.status === 'pending').length}
+                  </div>
+                  <div className="text-xs text-amber-800 mt-0.5">Pending</div>
                 </div>
+                <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-center">
+                  <div className="text-2xl font-bold text-blue-700">
+                    {sessions.filter(s => s.status === 'completed').length}
+                  </div>
+                  <div className="text-xs text-blue-800 mt-0.5">Completed</div>
+                </div>
+              </div>
+
+              {/* Real Session Completion Progress Bar */}
+              <div className="p-4 bg-white/80 rounded-xl border border-border/60 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-semibold text-foreground">Session Completion Rate</span>
+                  <span className="text-muted-foreground font-medium">
+                    {sessions.length > 0 
+                      ? `${Math.round((sessions.filter(s => s.status === 'completed').length / sessions.length) * 100)}%`
+                      : '0% (No completed sessions)'}
+                  </span>
+                </div>
+                <Progress 
+                  value={sessions.length > 0 
+                    ? Math.round((sessions.filter(s => s.status === 'completed').length / sessions.length) * 100)
+                    : 0
+                  } 
+                  className="h-2.5 bg-muted" 
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {sessions.filter(s => s.status === 'completed').length} of {sessions.length} sessions completed with counselors.
+                </p>
+              </div>
+
+              {/* Status Notice / Next Steps */}
+              <div className="p-4 rounded-xl border bg-muted/30 space-y-2">
+                <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Counseling Guideline
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Appointments are confirmed by the assigned counselor. For urgent crises, please call <strong>+91 9152987821</strong> or use the 24/7 emergency hotline below.
+                </p>
               </div>
             </CardContent>
           </Card>
         </section>
 
-        {/* Progress & Achievements Section */}
+        {/* Real Progress & Assessment Status Section */}
         <section className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
             <EmergencyResources />
@@ -684,161 +668,230 @@ const StudentPortal = () => {
           <div className="md:col-span-2">
             <Card className="bg-gradient-card shadow-card h-full">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5" />
-                  Progress & Achievements
-                </CardTitle>
-                <CardDescription>
-                  Visual progress on mental health assessments with interactive charts
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <Trophy className="h-5 w-5 text-primary" />
+                      Wellness Progress & Status Tracker
+                    </CardTitle>
+                    <CardDescription>
+                      Real status indicators driven by your confidential assessments and counseling activity
+                    </CardDescription>
+                  </div>
+                  {assessmentResult && (
+                    <Badge 
+                      className={`text-xs ${
+                        assessmentResult.riskLevel === 'Low'
+                          ? 'bg-emerald-600 text-white'
+                          : assessmentResult.riskLevel === 'Moderate'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-rose-600 text-white'
+                      }`}
+                    >
+                      {assessmentResult.riskLevel} Risk Profile
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {/* Mental Health Progress Charts */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {/* Weekly Progress Line Chart */}
-                    <div>
-                      <h4 className="font-medium mb-3">Weekly Wellness Score</h4>
-                      <div className="h-48">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={[
-                            { day: 'Mon', score: 65 },
-                            { day: 'Tue', score: 72 },
-                            { day: 'Wed', score: 68 },
-                            { day: 'Thu', score: 78 },
-                            { day: 'Fri', score: 85 },
-                            { day: 'Sat', score: 82 },
-                            { day: 'Sun', score: 88 }
-                          ]}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
-                            <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" />
-                            <YAxis stroke="hsl(var(--muted-foreground))" />
-                            <Tooltip 
-                              contentStyle={{ 
-                                backgroundColor: 'hsl(var(--card))', 
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px'
-                              }} 
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="score" 
-                              stroke="hsl(var(--primary))" 
-                              strokeWidth={3}
-                              dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
+                  {/* Real Assessment Progress Bars */}
+                  <div className="p-5 bg-white/80 rounded-xl border border-border/60 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                          <Brain className="h-4 w-4 text-primary" />
+                          Confidential Assessment Scores
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          {assessmentResult 
+                            ? `Last evaluated on ${assessmentResult.dateTaken}`
+                            : 'No assessment completed yet'}
+                        </p>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAssessment(true)}
+                        className="text-xs gap-1.5 h-8"
+                      >
+                        {assessmentResult ? <RefreshCw className="h-3.5 w-3.5 text-primary" /> : <Activity className="h-3.5 w-3.5 text-primary" />}
+                        {assessmentResult ? 'Retake Test' : 'Take Test (5 min)'}
+                      </Button>
                     </div>
 
-                    {/* Assessment Progress Pie Chart */}
-                    <div>
-                      <h4 className="font-medium mb-3">Assessment Coverage</h4>
-                      <div className="h-48">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={[
-                                { name: 'Anxiety', value: 85, color: '#3b82f6' },
-                                { name: 'Depression', value: 70, color: '#10b981' },
-                                { name: 'Stress', value: 92, color: '#8b5cf6' }
-                              ]}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={40}
-                              outerRadius={80}
-                              paddingAngle={5}
-                              dataKey="value"
-                            >
-                              <Cell fill="#3b82f6" />
-                              <Cell fill="#10b981" />
-                              <Cell fill="#8b5cf6" />
-                            </Pie>
-                            <Tooltip 
-                              formatter={(value) => [`${value}%`, 'Progress']}
-                              contentStyle={{ 
-                                backgroundColor: 'hsl(var(--card))', 
-                                border: '1px solid hsl(var(--border))',
-                                borderRadius: '8px'
-                              }} 
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="flex justify-center gap-4 text-xs mt-2">
-                        <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                          <span>Anxiety (85%)</span>
+                    {assessmentResult ? (
+                      <div className="space-y-3 pt-1">
+                        {/* Academic Stress */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-medium text-gray-700">Academic Stress</span>
+                            <span className="text-muted-foreground font-semibold">{assessmentResult.academicStress} / 10</span>
+                          </div>
+                          <Progress value={assessmentResult.academicStress * 10} className="h-2 bg-blue-100" />
                         </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                          <span>Depression (70%)</span>
+
+                        {/* Mood & Motivation */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-medium text-gray-700">Mood & Motivation</span>
+                            <span className="text-muted-foreground font-semibold">{assessmentResult.moodMotivation} / 10</span>
+                          </div>
+                          <Progress value={assessmentResult.moodMotivation * 10} className="h-2 bg-emerald-100" />
                         </div>
-                        <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                          <span>Stress (92%)</span>
+
+                        {/* Safety & Emotional Balance */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-medium text-gray-700">Safety & Coping Level</span>
+                            <span className="text-muted-foreground font-semibold">{assessmentResult.suicidalRisk} / 10</span>
+                          </div>
+                          <Progress value={assessmentResult.suicidalRisk * 10} className="h-2 bg-purple-100" />
                         </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="py-4 text-center space-y-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-xs text-muted-foreground">
+                            <span>Assessment Status</span>
+                            <span>0% Complete</span>
+                          </div>
+                          <Progress value={0} className="h-2 bg-muted" />
+                        </div>
+                        <p className="text-xs text-muted-foreground pt-1">
+                          Complete the confidential assessment above to unlock your real stress and mood progress scores.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Activity Stats Bar Chart */}
-                  <div>
-                    <h4 className="font-medium mb-3">Monthly Activity Overview</h4>
-                    <div className="h-48">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={[
-                          { activity: 'Sessions', count: 8 },
-                          { activity: 'Assessments', count: 3 },
-                          { activity: 'Journal', count: 15 },
-                          { activity: 'Meditation', count: 12 },
-                          { activity: 'Resources', count: 20 }
-                        ]}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
-                          <XAxis dataKey="activity" stroke="hsl(var(--muted-foreground))" />
-                          <YAxis stroke="hsl(var(--muted-foreground))" />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--card))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }} 
-                          />
-                          <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
+                  {/* Real Session Status & Activity Charts */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Session Status Pie Chart */}
+                    <div className="p-4 bg-white/70 rounded-xl border border-border/50">
+                      <h4 className="font-semibold text-xs text-foreground mb-2 flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-primary" />
+                        Appointments Status Breakdown
+                      </h4>
+                      {sessions.length > 0 ? (
+                        <div className="h-44">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  { name: 'Confirmed', value: sessions.filter(s => s.status === 'confirmed').length, color: '#10b981' },
+                                  { name: 'Pending', value: sessions.filter(s => s.status === 'pending').length, color: '#f59e0b' },
+                                  { name: 'Completed', value: sessions.filter(s => s.status === 'completed').length, color: '#3b82f6' },
+                                  { name: 'Cancelled', value: sessions.filter(s => s.status === 'cancelled').length, color: '#ef4444' },
+                                ].filter(item => item.value > 0)}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={35}
+                                outerRadius={65}
+                                paddingAngle={4}
+                                dataKey="value"
+                              >
+                                {[
+                                  { name: 'Confirmed', value: sessions.filter(s => s.status === 'confirmed').length, color: '#10b981' },
+                                  { name: 'Pending', value: sessions.filter(s => s.status === 'pending').length, color: '#f59e0b' },
+                                  { name: 'Completed', value: sessions.filter(s => s.status === 'completed').length, color: '#3b82f6' },
+                                  { name: 'Cancelled', value: sessions.filter(s => s.status === 'cancelled').length, color: '#ef4444' },
+                                ].filter(item => item.value > 0).map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                formatter={(val) => [`${val} session(s)`, 'Count']}
+                                contentStyle={{ 
+                                  backgroundColor: 'hsl(var(--card))', 
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '8px'
+                                }} 
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="h-44 flex flex-col items-center justify-center text-xs text-muted-foreground">
+                          <Calendar className="h-6 w-6 opacity-30 mb-1" />
+                          <span>No session status data to display</span>
+                        </div>
+                      )}
+                      <div className="flex justify-center flex-wrap gap-3 text-[11px] mt-1">
+                        <span className="flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+                          Confirmed ({sessions.filter(s => s.status === 'confirmed').length})
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 bg-amber-500 rounded-full" />
+                          Pending ({sessions.filter(s => s.status === 'pending').length})
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="w-2.5 h-2.5 bg-blue-500 rounded-full" />
+                          Completed ({sessions.filter(s => s.status === 'completed').length})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Real Student Activity Bar Chart */}
+                    <div className="p-4 bg-white/70 rounded-xl border border-border/50">
+                      <h4 className="font-semibold text-xs text-foreground mb-2 flex items-center gap-1.5">
+                        <Activity className="h-3.5 w-3.5 text-primary" />
+                        Activity Summary
+                      </h4>
+                      <div className="h-44">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={[
+                            { activity: 'Booked', count: sessions.length },
+                            { activity: 'Confirmed', count: sessions.filter(s => s.status === 'confirmed').length },
+                            { activity: 'Completed', count: sessions.filter(s => s.status === 'completed').length },
+                            { activity: 'Assessments', count: assessmentResult ? 1 : 0 },
+                          ]}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                            <XAxis dataKey="activity" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                            <YAxis stroke="hsl(var(--muted-foreground))" allowDecimals={false} tick={{ fontSize: 11 }} />
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: 'hsl(var(--card))', 
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px'
+                              }} 
+                            />
+                            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Achievement Badges */}
+                  {/* Real Verified Account Milestones */}
                   <div>
-                    <h4 className="font-medium mb-3">Recent Achievements</h4>
+                    <h4 className="font-semibold text-xs text-foreground mb-2.5">Verified Milestones</h4>
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        <Trophy className="w-3 h-3" />
-                        7-day journal streak
+                      <Badge variant="secondary" className="flex items-center gap-1 text-xs py-1">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        Verified Student Account
                       </Badge>
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        <Heart className="w-3 h-3" />
-                        Wellness milestone
+                      <Badge 
+                        variant={assessmentResult ? "secondary" : "outline"} 
+                        className={`flex items-center gap-1 text-xs py-1 ${assessmentResult ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'opacity-60'}`}
+                      >
+                        <Brain className="w-3.5 h-3.5 text-blue-600" />
+                        {assessmentResult ? 'Assessment Completed' : 'Assessment Pending'}
                       </Badge>
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        <Target className="w-3 h-3" />
-                        Session regular
+                      <Badge 
+                        variant={sessions.length > 0 ? "secondary" : "outline"} 
+                        className={`flex items-center gap-1 text-xs py-1 ${sessions.length > 0 ? 'text-primary bg-primary/10' : 'opacity-60'}`}
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        {sessions.length > 0 ? `${sessions.length} Session(s) Registered` : 'No Bookings Yet'}
                       </Badge>
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        <Activity className="w-3 h-3" />
-                        Meditation master
-                      </Badge>
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        <Award className="w-3 h-3" />
-                        Self-care champion
-                      </Badge>
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        <Star className="w-3 h-3" />
-                        Level 4 achieved
-                      </Badge>
+                      {sessions.some(s => s.status === 'completed') && (
+                        <Badge variant="secondary" className="flex items-center gap-1 text-xs py-1 text-purple-800 bg-purple-50 border-purple-200">
+                          <Trophy className="w-3.5 h-3.5 text-purple-600" />
+                          Session Completed
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -863,7 +916,13 @@ const StudentPortal = () => {
         open={showAssessment}
         onOpenChange={setShowAssessment}
         onComplete={(result) => {
-          console.log('Assessment completed:', result);
+          const dataToSave = {
+            ...result,
+            dateTaken: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          };
+          const key = `uniheal_assessment_${currentUser?.id || currentUser?._id || 'guest'}`;
+          localStorage.setItem(key, JSON.stringify(dataToSave));
+          setAssessmentResult(dataToSave);
         }}
       />
     </div>

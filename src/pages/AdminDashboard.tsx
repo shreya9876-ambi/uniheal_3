@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Users, TrendingUp, AlertTriangle, Calendar, Leaf, 
@@ -66,45 +67,25 @@ const AdminDashboard = () => {
   const [editError, setEditError] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Real-time backend stats
+  // Real-time backend stats & metrics
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalCounsellors: 0,
     totalAdmins: 0,
     totalAppointments: 0,
     pendingAppointments: 0,
+    confirmedAppointments: 0,
+    completedAppointments: 0,
+    cancelledAppointments: 0,
+    activeStudents: 0,
+    inactiveStudents: 0,
+    activeCounsellors: 0,
+    inactiveCounsellors: 0,
+    departmentStats: [] as { name: string; students: number }[],
+    appointmentStatusStats: [] as { name: string; count: number; color: string }[],
+    urgencyStats: [] as { level: string; count: number; color: string }[],
+    modeStats: [] as { mode: string; count: number }[],
   });
-
-  // Sample analytics data
-  const stressLevelData = [
-    { year: "1st Year", low: 45, moderate: 35, high: 20 },
-    { year: "2nd Year", low: 30, moderate: 40, high: 30 },
-    { year: "3rd Year", low: 25, moderate: 45, high: 30 },
-    { year: "4th Year", low: 20, moderate: 35, high: 45 },
-  ];
-
-  const issueDistribution = [
-    { name: "Exam Anxiety", value: 35, color: "#8B5CF6" },
-    { name: "Academic Pressure", value: 25, color: "#06B6D4" },
-    { name: "Social Issues", value: 15, color: "#10B981" },
-    { name: "Financial Stress", value: 15, color: "#F59E0B" },
-    { name: "Other", value: 10, color: "#EF4444" },
-  ];
-
-  const monthlyEngagement = [
-    { month: "Jan", sessions: 120, screenings: 89 },
-    { month: "Feb", sessions: 145, screenings: 112 },
-    { month: "Mar", sessions: 180, screenings: 156 },
-    { month: "Apr", sessions: 220, screenings: 189 },
-    { month: "May", sessions: 195, screenings: 167 },
-    { month: "Jun", sessions: 160, screenings: 134 },
-  ];
-
-  const riskAlerts = [
-    { id: 1, message: "15% increase in high-stress reports this week", level: "warning" },
-    { id: 2, message: "Peak anxiety levels detected in Engineering students", level: "high" },
-    { id: 3, message: "3 students flagged for immediate counselor outreach", level: "critical" },
-  ];
 
   // Fetch users & stats from backend
   const fetchUsersAndStats = async () => {
@@ -890,111 +871,303 @@ const AdminDashboard = () => {
         {/* TAB 2: ANALYTICS & TRENDS */}
         {activeTab === 'analytics' && (
           <div className="space-y-8">
+            {/* Top Row: Student Status & Department Breakdown */}
             <div className="grid lg:grid-cols-2 gap-8">
-              {/* Stress Levels by Academic Year */}
+              {/* Real Student Status Distribution */}
               <Card className="bg-gradient-card shadow-card">
                 <CardHeader>
-                  <CardTitle>Stress Levels by Academic Year</CardTitle>
-                  <CardDescription>Distribution of stress levels across different student cohorts</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        Student Account Status Distribution
+                      </CardTitle>
+                      <CardDescription>
+                        Real distribution of active vs inactive student platform accounts ({stats.totalStudents} total enrolled)
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="bg-white text-xs">
+                      {stats.totalStudents} Students
+                    </Badge>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={stressLevelData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="year" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="low" stackId="a" fill="hsl(var(--pastel-mint))" name="Low Stress" />
-                      <Bar dataKey="moderate" stackId="a" fill="hsl(var(--primary))" name="Moderate Stress" />
-                      <Bar dataKey="high" stackId="a" fill="hsl(var(--destructive))" name="High Stress" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <CardContent className="space-y-6">
+                  <div className="h-56">
+                    {stats.totalStudents > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: "Active Students", value: stats.activeStudents, color: "#10B981" },
+                              { name: "Inactive Accounts", value: stats.inactiveStudents, color: "#F43F5E" },
+                            ].filter(item => item.value > 0)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={45}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                            label={({ name, value }) => `${name}: ${value}`}
+                          >
+                            {[
+                              { name: "Active Students", value: stats.activeStudents, color: "#10B981" },
+                              { name: "Inactive Accounts", value: stats.inactiveStudents, color: "#F43F5E" },
+                            ].filter(item => item.value > 0).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(val) => [`${val} student(s)`, 'Count']}
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }} 
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
+                        <Users className="h-8 w-8 opacity-30 mb-2" />
+                        <span>No student accounts registered yet</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Real Student Status Progress Bars */}
+                  <div className="space-y-3 pt-2">
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-xs font-medium">
+                        <span className="flex items-center gap-1.5 text-emerald-800">
+                          <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+                          Active Students ({stats.activeStudents})
+                        </span>
+                        <span className="text-muted-foreground font-semibold">
+                          {stats.totalStudents > 0 
+                            ? `${Math.round((stats.activeStudents / stats.totalStudents) * 100)}%` 
+                            : '100%'}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={stats.totalStudents > 0 ? (stats.activeStudents / stats.totalStudents) * 100 : 100} 
+                        className="h-2 bg-emerald-100" 
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-xs font-medium">
+                        <span className="flex items-center gap-1.5 text-rose-800">
+                          <span className="w-2.5 h-2.5 bg-rose-500 rounded-full" />
+                          Inactive Accounts ({stats.inactiveStudents})
+                        </span>
+                        <span className="text-muted-foreground font-semibold">
+                          {stats.totalStudents > 0 
+                            ? `${Math.round((stats.inactiveStudents / stats.totalStudents) * 100)}%` 
+                            : '0%'}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={stats.totalStudents > 0 ? (stats.inactiveStudents / stats.totalStudents) * 100 : 0} 
+                        className="h-2 bg-rose-100" 
+                      />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Issue Distribution */}
+              {/* Real Student Department Distribution */}
               <Card className="bg-gradient-card shadow-card">
                 <CardHeader>
-                  <CardTitle>Mental Health Issue Distribution</CardTitle>
-                  <CardDescription>Most common concerns reported by university students</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Leaf className="h-5 w-5 text-primary" />
+                    Students by Academic Department
+                  </CardTitle>
+                  <CardDescription>
+                    Real-time enrollment count of students grouped by academic faculty
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={issueDistribution}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}%`}
-                      >
-                        {issueDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <div className="h-64">
+                    {stats.departmentStats && stats.departmentStats.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stats.departmentStats}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                          <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                          <YAxis stroke="hsl(var(--muted-foreground))" allowDecimals={false} tick={{ fontSize: 11 }} />
+                          <Tooltip 
+                            formatter={(val) => [`${val} student(s)`, 'Enrolled']}
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }} 
+                          />
+                          <Bar dataKey="students" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
+                        <Users className="h-8 w-8 opacity-30 mb-2" />
+                        <span>No department data available</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-border/50 grid grid-cols-2 gap-2 text-xs">
+                    {stats.departmentStats && stats.departmentStats.slice(0, 4).map((d, i) => (
+                      <div key={i} className="flex justify-between items-center p-2 rounded bg-white/60">
+                        <span className="font-medium text-gray-700 truncate max-w-[140px]">{d.name}</span>
+                        <Badge variant="secondary" className="text-[10px]">{d.students} students</Badge>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Monthly Engagement Trends */}
-            <Card className="bg-gradient-card shadow-card">
-              <CardHeader>
-                <CardTitle>Monthly Engagement Trends</CardTitle>
-                <CardDescription>Platform usage and counseling sessions over time</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={360}>
-                  <BarChart data={monthlyEngagement}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="sessions" fill="hsl(var(--primary))" name="Counseling Sessions" />
-                    <Bar dataKey="screenings" fill="hsl(var(--pastel-lavender))" name="Risk Screenings" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Risk Alerts */}
-            <Card className="bg-gradient-card shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  Active Risk Alerts
-                </CardTitle>
-                <CardDescription>
-                  Automated notifications flagged for immediate counseling intervention
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {riskAlerts.map((alert) => (
-                    <div
-                      key={alert.id}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-background"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Badge
-                          variant={alert.level === 'critical' ? 'destructive' : alert.level === 'high' ? 'destructive' : 'secondary'}
-                        >
-                          {alert.level.toUpperCase()}
-                        </Badge>
-                        <span className="text-sm font-medium">{alert.message}</span>
-                      </div>
-                      <Button size="sm" variant="outline">
-                        Review Case
-                      </Button>
+            {/* Bottom Row: Appointment Status & Urgency Priority */}
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Real Appointment Booking Status Distribution */}
+              <Card className="bg-gradient-card shadow-card">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-primary" />
+                        Appointment Status Distribution
+                      </CardTitle>
+                      <CardDescription>
+                        Real booking status for counseling sessions ({stats.totalAppointments} total bookings)
+                      </CardDescription>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    <Badge variant="outline" className="bg-white text-xs">
+                      {stats.totalAppointments} Total
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="h-56">
+                    {stats.totalAppointments > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={stats.appointmentStatusStats.filter(s => s.count > 0)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={45}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="count"
+                            label={({ name, count }) => `${name}: ${count}`}
+                          >
+                            {stats.appointmentStatusStats.filter(s => s.count > 0).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            formatter={(val) => [`${val} appointment(s)`, 'Count']}
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }} 
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
+                        <Calendar className="h-8 w-8 opacity-30 mb-2" />
+                        <span>No appointments booked yet</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Status Bar Indicators */}
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                      <div className="text-lg font-bold text-emerald-700">{stats.confirmedAppointments}</div>
+                      <div className="text-xs text-emerald-800">Confirmed Sessions</div>
+                    </div>
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                      <div className="text-lg font-bold text-amber-700">{stats.pendingAppointments}</div>
+                      <div className="text-xs text-amber-800">Pending Review</div>
+                    </div>
+                    <div className="p-3 bg-blue-50 rounded-xl border border-blue-200">
+                      <div className="text-lg font-bold text-blue-700">{stats.completedAppointments}</div>
+                      <div className="text-xs text-blue-800">Completed Sessions</div>
+                    </div>
+                    <div className="p-3 bg-rose-50 rounded-xl border border-rose-200">
+                      <div className="text-lg font-bold text-rose-700">{stats.cancelledAppointments}</div>
+                      <div className="text-xs text-rose-800">Cancelled / Declined</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Real Clinical Urgency Levels & Status Bars */}
+              <Card className="bg-gradient-card shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldAlert className="h-5 w-5 text-primary" />
+                    Student Clinical Urgency Status Bars
+                  </CardTitle>
+                  <CardDescription>
+                    Real distribution of appointment urgency levels flagged by students
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {stats.urgencyStats && stats.urgencyStats.map((u, i) => {
+                    const pct = stats.totalAppointments > 0 
+                      ? Math.round((u.count / stats.totalAppointments) * 100) 
+                      : 0;
+                    return (
+                      <div key={i} className="space-y-1.5 p-3 rounded-lg bg-white/60 border border-border/40">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="font-semibold text-foreground flex items-center gap-1.5">
+                            <span 
+                              className="w-2.5 h-2.5 rounded-full" 
+                              style={{ backgroundColor: u.color }} 
+                            />
+                            {u.level} Urgency
+                          </span>
+                          <span className="text-muted-foreground font-medium">
+                            {u.count} request(s) ({pct}%)
+                          </span>
+                        </div>
+                        <Progress value={pct} className="h-2 bg-muted" />
+                      </div>
+                    );
+                  })}
+
+                  {/* Real-time Alerts */}
+                  <div className="pt-2 space-y-2">
+                    <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                      Real-time System Alerts
+                    </h4>
+                    {stats.pendingAppointments > 0 ? (
+                      <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+                        <span>Action Required: {stats.pendingAppointments} student booking request(s) are currently awaiting counsellor confirmation.</span>
+                      </div>
+                    ) : null}
+
+                    {stats.inactiveStudents > 0 ? (
+                      <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+                        <span>{stats.inactiveStudents} student account(s) are deactivated or pending admin verification.</span>
+                      </div>
+                    ) : null}
+
+                    {stats.pendingAppointments === 0 && stats.inactiveStudents === 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                        <span>All student accounts and counseling queues are currently operational with no pending bottlenecks.</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
