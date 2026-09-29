@@ -302,7 +302,7 @@ const AdminDashboard = () => {
                     <Input
                       id="admin-email"
                       type="email"
-                      placeholder="admin@uniheal.edu"
+                      placeholder="shreya@gmail.com"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       className="pl-9"

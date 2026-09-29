@@ -45,15 +45,15 @@ async function seedDefaultData() {
     const adminCount = await User.countDocuments({ role: 'admin' });
     if (adminCount === 0) {
       const defaultAdmin = new User({
-        name: 'System Administrator',
-        email: process.env.DEFAULT_ADMIN_EMAIL || 'admin@uniheal.edu',
-        password: process.env.DEFAULT_ADMIN_PASSWORD || 'admin123',
+        name: 'Shreya',
+        email: process.env.DEFAULT_ADMIN_EMAIL || 'shreya@gmail.com',
+        password: process.env.DEFAULT_ADMIN_PASSWORD || 'shreya1805',
         role: 'admin',
         department: 'Administration',
         status: 'active',
       });
       await defaultAdmin.save();
-      console.log('✅ Default Admin created: admin@uniheal.edu (Password: admin123)');
+      console.log('✅ Default Admin created: shreya@gmail.com');
     }
 
     const counsellorCount = await User.countDocuments({ role: 'counsellor' });

@@ -13,8 +13,8 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/uniheal';
-const ADMIN_EMAIL = process.env.DEFAULT_ADMIN_EMAIL || 'admin@uniheal.edu';
-const ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'admin123';
+const ADMIN_EMAIL = process.env.DEFAULT_ADMIN_EMAIL || 'shreya@gmail.com';
+const ADMIN_PASSWORD = process.env.DEFAULT_ADMIN_PASSWORD || 'shreya1805';
 
 await mongoose.connect(MONGODB_URI);
 console.log('✅ Connected to MongoDB');
