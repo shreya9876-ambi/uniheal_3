@@ -104,7 +104,7 @@ const Index = () => {
             className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
             style={{ backgroundImage: `url(${wellnessHeroBg})` }}
           ></div>
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-green-500/10"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#FF677D]/15 via-[#FFB3BA]/10 to-[#FFE156]/15"></div>
           
           <div className="relative z-10">
             <div className="flex justify-center mb-8">
@@ -226,7 +226,7 @@ const Index = () => {
                   <CardContent className="p-6">
                     <div className="flex items-start gap-1 mb-4">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <Star key={i} className="h-4 w-4 fill-[#FFE156] text-[#FFE156]" />
                       ))}
                     </div>
                     <Quote className="h-8 w-8 text-muted-foreground/30 mb-4" />

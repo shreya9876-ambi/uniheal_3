@@ -50,9 +50,18 @@ export default {
         },
         pastel: {
           pink: "hsl(var(--pastel-pink))",
+          coral: "hsl(var(--pastel-coral))",
           lavender: "hsl(var(--pastel-lavender))",
           mint: "hsl(var(--pastel-mint))",
           peach: "hsl(var(--pastel-peach))",
+          indigo: "hsl(var(--pastel-indigo))",
+        },
+        palette: {
+          pink: "#FFB3BA",
+          coral: "#FF677D",
+          mauve: "#D4A5A5",
+          indigo: "#392F5A",
+          yellow: "#FFE156",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -69,6 +78,8 @@ export default {
         'gradient-hero': 'var(--gradient-hero)',
         'gradient-soft': 'var(--gradient-soft)',
         'gradient-card': 'var(--gradient-card)',
+        'gradient-accent': 'var(--gradient-accent)',
+        'gradient-indigo': 'var(--gradient-indigo)',
       },
       boxShadow: {
         'soft': 'var(--shadow-soft)',

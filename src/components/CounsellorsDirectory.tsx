@@ -66,11 +66,11 @@ export default function CounsellorsDirectory({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold mb-2">
-            <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFB3BA]/30 border border-[#FFB3BA] text-[#392F5A] text-xs font-semibold mb-2">
+            <Sparkles className="h-3.5 w-3.5 text-[#FF677D]" />
             Registered University Therapists & Counsellors
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <UserCheck className="h-8 w-8 text-primary" />
             Our Campus Counsellors
           </h2>
@@ -84,7 +84,7 @@ export default function CounsellorsDirectory({
           variant="outline"
           size="sm"
           onClick={onRefresh}
-          className="gap-2 self-start md:self-auto border-gray-200 hover:bg-teal-50"
+          className="gap-2 self-start md:self-auto border-border/80 hover:bg-[#FFB3BA]/20 text-[#392F5A]"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           Refresh Directory
@@ -187,24 +187,24 @@ export default function CounsellorsDirectory({
               >
                 <div>
                   {/* Card Header / Gradient Banner */}
-                  <div className="bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50/50 p-5 border-b border-gray-100 relative">
+                  <div className="bg-gradient-to-r from-[#FFB3BA]/30 via-white to-[#FFE156]/20 p-5 border-b border-border/60 relative">
                     <div className="flex items-start gap-3.5">
                       {/* Initials Avatar */}
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-700 text-white flex items-center justify-center font-bold text-xl shadow-md flex-shrink-0">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF677D] to-[#392F5A] text-white flex items-center justify-center font-bold text-xl shadow-md flex-shrink-0">
                         {counsellor.name.charAt(0).toUpperCase()}
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <h3 className="font-bold text-base text-gray-900 truncate">
+                          <h3 className="font-bold text-base text-foreground truncate">
                             {counsellor.name}
                           </h3>
                         </div>
                         <Badge
                           variant="secondary"
-                          className="bg-teal-100/80 text-teal-800 text-[11px] font-medium mt-1 truncate max-w-full"
+                          className="bg-[#392F5A]/10 text-[#392F5A] border border-[#392F5A]/15 text-[11px] font-medium mt-1 truncate max-w-full"
                         >
-                          <ShieldCheck className="h-3 w-3 mr-1 text-teal-600 inline" />
+                          <ShieldCheck className="h-3 w-3 mr-1 text-[#FF677D] inline" />
                           {counsellor.specialization || "Mental Health Specialist"}
                         </Badge>
                         {counsellor.department && (
@@ -220,32 +220,32 @@ export default function CounsellorsDirectory({
                   <CardContent className="p-5 space-y-4">
                     {/* Bio */}
                     {counsellor.bio ? (
-                      <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed italic bg-gray-50/70 p-2.5 rounded-lg border border-gray-100">
+                      <p className="text-xs text-foreground/80 line-clamp-3 leading-relaxed italic bg-muted/40 p-2.5 rounded-lg border border-border/50">
                         "{counsellor.bio}"
                       </p>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic bg-gray-50/50 p-2.5 rounded-lg">
+                      <p className="text-xs text-muted-foreground italic bg-muted/30 p-2.5 rounded-lg">
                         Available for confidential 1-on-1 counseling, stress management, and emotional guidance.
                       </p>
                     )}
 
                     {/* Location & Contact Info */}
-                    <div className="space-y-1.5 text-xs text-gray-600">
+                    <div className="space-y-1.5 text-xs text-muted-foreground">
                       {counsellor.officeLocation && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3.5 w-3.5 text-[#FF677D] flex-shrink-0" />
                           <span className="truncate">{counsellor.officeLocation}</span>
                         </div>
                       )}
                       {counsellor.phone && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Phone className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-3.5 w-3.5 text-[#FF677D] flex-shrink-0" />
                           <span>{counsellor.phone}</span>
                         </div>
                       )}
                       {counsellor.email && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Mail className="h-3.5 w-3.5 text-teal-600 flex-shrink-0" />
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3.5 w-3.5 text-[#FF677D] flex-shrink-0" />
                           <span className="truncate">{counsellor.email}</span>
                         </div>
                       )}
