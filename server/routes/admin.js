@@ -39,7 +39,7 @@ router.get('/users', async (req, res) => {
 // 2. Admin creates new credentials for a student, counsellor, or admin
 router.post('/users', async (req, res) => {
   try {
-    const { name, email, password, role, studentId, department, specialization, phone } = req.body;
+    const { name, email, password, role, studentId, department, specialization, phone, bio, officeLocation, availability } = req.body;
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: 'Name, Email, Password, and Role are required.' });
@@ -68,6 +68,9 @@ router.post('/users', async (req, res) => {
       department: department?.trim() || '',
       specialization: role === 'counsellor' ? specialization?.trim() : '',
       phone: phone?.trim() || '',
+      bio: bio?.trim() || '',
+      officeLocation: officeLocation?.trim() || undefined,
+      availability: availability || undefined,
       status: 'active',
     });
 
@@ -87,7 +90,7 @@ router.post('/users', async (req, res) => {
 router.put('/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password, status, department, specialization, phone, studentId } = req.body;
+    const { name, email, password, status, department, specialization, phone, studentId, bio, officeLocation, availability } = req.body;
 
     const user = await User.findById(id);
     if (!user) {
@@ -107,6 +110,9 @@ router.put('/users/:id', async (req, res) => {
     if (specialization !== undefined) user.specialization = specialization;
     if (phone !== undefined) user.phone = phone;
     if (studentId !== undefined) user.studentId = studentId;
+    if (bio !== undefined) user.bio = bio;
+    if (officeLocation !== undefined) user.officeLocation = officeLocation;
+    if (availability) user.availability = availability;
 
     if (password && password.trim() !== '') {
       user.password = password; // pre-save will re-hash

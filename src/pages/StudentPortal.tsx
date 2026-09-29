@@ -7,15 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogIn, Leaf, Headphones, Shield, Brain, Heart, Activity, Calendar, Clock, CheckCircle, Plus, Trophy, Target, Award, Zap, Star, Crown, Sparkles, AlertTriangle, RefreshCw } from "lucide-react";
+import { ArrowLeft, LogIn, Leaf, Headphones, Shield, Brain, Heart, Activity, Calendar, Clock, CheckCircle, Plus, Trophy, Target, Award, Zap, Star, Crown, Sparkles, AlertTriangle, RefreshCw, UserCheck, MapPin, Video, Building } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import sproutCharacter from "@/assets/sprout-character.png";
 import ChatBot from "@/components/ChatBot";
 import EmergencyResources from "@/components/EmergencyResources";
 import QuickResources from "@/components/QuickResources";
+import CounsellorsDirectory from "@/components/CounsellorsDirectory";
+import CounsellorBookingModal from "@/components/CounsellorBookingModal";
 import { Progress } from "@/components/ui/progress";
 import AssessmentModal from "@/components/AssessmentModal";
-import { api, getStoredUser, clearStoredAuth, UserProfile } from "@/lib/api";
+import { api, getStoredUser, clearStoredAuth, UserProfile, CounsellorProfile, AppointmentItem } from "@/lib/api";
 
 const StudentPortal = () => {
   const navigate = useNavigate();
@@ -33,32 +35,37 @@ const StudentPortal = () => {
 
   const [showAssessment, setShowAssessment] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
-  const [bookingDetails, setBookingDetails] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    concerns: "",
-    urgency: "normal"
-  });
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [counsellors, setCounsellors] = useState<CounsellorProfile[]>([]);
+  const [loadingCounsellors, setLoadingCounsellors] = useState(false);
+  const [selectedCounsellorForBooking, setSelectedCounsellorForBooking] = useState<CounsellorProfile | null>(null);
+
+  const [sessions, setSessions] = useState<AppointmentItem[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
-  const [bookingError, setBookingError] = useState("");
-  const [bookingSuccess, setBookingSuccess] = useState("");
+
+  // Load counsellors on component mount
+  useEffect(() => {
+    fetchCounsellors();
+  }, []);
 
   // Load appointments from backend on login
   useEffect(() => {
     if (isLoggedIn && currentUser) {
-      setBookingDetails(prev => ({
-        ...prev,
-        name: currentUser.name || "",
-        email: currentUser.email || "",
-        phone: currentUser.phone || "",
-      }));
       fetchSessions();
+      fetchCounsellors();
     }
   }, [isLoggedIn, currentUser]);
+
+  const fetchCounsellors = async () => {
+    setLoadingCounsellors(true);
+    try {
+      const res = await api.getCounsellors();
+      setCounsellors(res.counsellors || []);
+    } catch (err) {
+      console.warn("Could not fetch counsellors", err);
+    } finally {
+      setLoadingCounsellors(false);
+    }
+  };
 
   const fetchSessions = async () => {
     setLoadingSessions(true);
@@ -111,49 +118,14 @@ const StudentPortal = () => {
     setSessions([]);
   };
 
-  // Helper functions
-  const getQuickDates = () => {
-    const dates = [];
-    const today = new Date();
-    
-    for (let i = 1; i <= 6; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      
-      if (date.getDay() !== 0 && date.getDay() !== 6) { // Skip weekends
-        dates.push({
-          value: date.toISOString().split('T')[0],
-          day: date.toLocaleDateString('en-US', { weekday: 'short' }),
-          date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        });
-      }
-      
-      if (dates.length === 3) break;
-    }
-    
-    return dates;
+  const handleBookWithCounsellor = (counsellor: CounsellorProfile) => {
+    setSelectedCounsellorForBooking(counsellor);
+    setShowBookingModal(true);
   };
 
-  const getQuickTimes = () => {
-    return ["10:00 AM", "2:00 PM", "4:00 PM", "6:00 PM"];
-  };
-
-  const handleQuickBooking = () => {
-    const newSession = {
-      id: sessions.length + 1,
-      date: selectedDate,
-      time: selectedTime,
-      status: "pending" as const,
-      counselor: "Dr. Wilson"
-    };
-    
-    setSessions([...sessions, newSession]);
-    setShowBookingModal(false);
-    setSelectedDate("");
-    setSelectedTime("");
-    
-    // Show success message or navigate
-    alert("Session booked successfully!");
+  const handleOpenGeneralBooking = () => {
+    setSelectedCounsellorForBooking(counsellors.length > 0 ? counsellors[0] : null);
+    setShowBookingModal(true);
   };
 
   if (!isLoggedIn) {
@@ -315,21 +287,30 @@ const StudentPortal = () => {
               </Button>
               <Button
                 variant="ghost"
+                onClick={() => scrollToSection('counsellors-section')}
+                size="sm"
+                className="gap-2 font-medium text-teal-800 hover:text-teal-950 hover:bg-teal-50"
+              >
+                <UserCheck className="h-4 w-4 text-teal-600" />
+                Counsellors
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => scrollToSection('calendar-section')}
                 size="sm"
                 className="gap-2"
               >
                 <Activity className="h-4 w-4" />
-                Calendar
+                My Sessions
               </Button>
               <Button
                 variant="ghost"
-                onClick={() => setShowBookingModal(true)}
+                onClick={handleOpenGeneralBooking}
                 size="sm"
-                className="gap-2"
+                className="gap-2 bg-primary/10 hover:bg-primary/20 text-primary font-medium"
               >
                 <Plus className="h-4 w-4" />
-                Quick Book
+                Book Session
               </Button>
             </div>
 
@@ -471,6 +452,14 @@ const StudentPortal = () => {
           <QuickResources />
         </section>
 
+        {/* Registered Counsellors Directory Section */}
+        <CounsellorsDirectory
+          counsellors={counsellors}
+          loading={loadingCounsellors}
+          onBookWithCounsellor={handleBookWithCounsellor}
+          onRefresh={fetchCounsellors}
+        />
+
         {/* My Sessions & Quick Actions Section */}
         <section id="calendar-section" className="grid lg:grid-cols-2 gap-6">
           {/* Calendar */}
@@ -500,29 +489,56 @@ const StudentPortal = () => {
                 ) : (
                   sessions.map((session) => (
                     <div 
-                      key={session._id || session.id} 
-                      className={`p-4 rounded-lg border ${
-                        session.status === 'pending' 
-                          ? 'bg-blue-50 border-blue-200' 
-                          : 'bg-green-50 border-green-200'
-                      } hover-scale animate-fade-in`}
+                      key={session._id} 
+                      className={`p-4 rounded-xl border transition-all ${
+                        session.status === 'confirmed' 
+                          ? 'bg-emerald-50/70 border-emerald-200' 
+                          : session.status === 'completed'
+                          ? 'bg-gray-50 border-gray-200'
+                          : 'bg-blue-50/70 border-blue-200'
+                      } hover:shadow-sm`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">
-                            {new Date(session.date).toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              month: 'short', 
-                              day: 'numeric' 
-                            })}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{session.time} - {session.counselorName || session.counselor || 'Assigned Counselor'}</p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-sm text-gray-900">
+                              {session.counselorName || 'Assigned Counsellor'}
+                            </p>
+                            <Badge variant="outline" className="text-[10px] bg-white">
+                              {session.mode || 'In-Person'}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1 font-medium text-gray-700">
+                              <Calendar className="h-3 w-3 text-primary" />
+                              {session.date}
+                            </span>
+                            <span className="flex items-center gap-1 font-medium text-gray-700">
+                              <Clock className="h-3 w-3 text-primary" />
+                              {session.time}
+                            </span>
+                          </div>
+                          {session.concerns && (
+                            <p className="text-xs text-gray-600 italic line-clamp-1 pt-0.5">
+                              "{session.concerns}"
+                            </p>
+                          )}
+                          {session.notes && (
+                            <p className="text-xs text-teal-800 bg-teal-100/50 p-1.5 rounded mt-1">
+                              <strong>Counsellor Note:</strong> {session.notes}
+                            </p>
+                          )}
                         </div>
                         <Badge 
-                          variant={session.status === 'pending' ? 'secondary' : 'default'}
-                          className={session.status === 'completed' ? 'bg-green-500' : ''}
+                          className={
+                            session.status === 'confirmed' 
+                              ? 'bg-emerald-600 text-white' 
+                              : session.status === 'completed' 
+                              ? 'bg-gray-600 text-white'
+                              : 'bg-amber-500 text-white'
+                          }
                         >
-                          {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
+                          {session.status === 'pending' ? 'Pending Approval' : session.status.charAt(0).toUpperCase() + session.status.slice(1)}
                         </Badge>
                       </div>
                     </div>
@@ -531,7 +547,7 @@ const StudentPortal = () => {
                 
                 <div className="text-center pt-4">
                   <Button 
-                    onClick={() => setShowBookingModal(true)}
+                    onClick={handleOpenGeneralBooking}
                     className="gap-2"
                   >
                     <Plus className="h-4 w-4" />
@@ -832,84 +848,16 @@ const StudentPortal = () => {
         </section>
       </main>
       
-      {/* Quick Booking Modal */}
-      <Dialog open={showBookingModal} onOpenChange={setShowBookingModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Quick Book Session
-            </DialogTitle>
-            <DialogDescription>
-              Schedule your counseling session quickly and easily
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Quick Date Selection */}
-            <div>
-              <Label className="text-base font-medium mb-3 block">Available This Week</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {getQuickDates().map((date) => (
-                  <Button
-                    key={date.value}
-                    variant={selectedDate === date.value ? "default" : "outline"}
-                    onClick={() => setSelectedDate(date.value)}
-                    className="h-auto p-3 flex flex-col"
-                  >
-                    <span className="text-xs font-medium">{date.day}</span>
-                    <span className="text-sm">{date.date}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {selectedDate && (
-              <div>
-                <Label className="text-base font-medium mb-3 block">Available Times</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {getQuickTimes().map((time) => (
-                    <Button
-                      key={time}
-                      variant={selectedTime === time ? "default" : "outline"}
-                      onClick={() => setSelectedTime(time)}
-                      size="sm"
-                    >
-                      {time}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {selectedDate && selectedTime && (
-              <div className="bg-primary/10 p-4 rounded-lg">
-                <h4 className="font-medium text-primary mb-2">Session Confirmed</h4>
-                <p className="text-sm text-primary/80">
-                  {selectedDate} at {selectedTime}
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowBookingModal(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleQuickBooking}
-                disabled={!selectedDate || !selectedTime}
-                className="flex-1"
-              >
-                Book Session
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Counsellor Booking Modal with Real Calendar & Slot Availability */}
+      <CounsellorBookingModal
+        open={showBookingModal}
+        onOpenChange={setShowBookingModal}
+        selectedCounsellor={selectedCounsellorForBooking}
+        counsellorsList={counsellors}
+        onBookingSuccess={() => {
+          fetchSessions();
+        }}
+      />
       
       <AssessmentModal 
         open={showAssessment}

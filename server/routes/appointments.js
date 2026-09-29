@@ -31,10 +31,31 @@ router.get('/', async (req, res) => {
 // Create new appointment (Student only or Admin)
 router.post('/', async (req, res) => {
   try {
-    const { date, time, urgency, concerns, counselorId, counselorName } = req.body;
+    const { date, time, mode, urgency, concerns, counselorId, counselorName } = req.body;
 
     if (!date || !time) {
       return res.status(400).json({ message: 'Date and time are required for booking.' });
+    }
+
+    // Check slot collision if booking with a specific counsellor
+    if (counselorId) {
+      const existing = await Appointment.findOne({
+        counselor: counselorId,
+        date,
+        time,
+        status: { $in: ['pending', 'confirmed'] },
+      });
+      if (existing) {
+        return res.status(409).json({
+          message: 'This time slot has already been reserved for this counsellor. Please select a different time slot.',
+        });
+      }
+    }
+
+    let finalCounselorName = counselorName;
+    if (counselorId && (!finalCounselorName || finalCounselorName === 'Assigned Counselor')) {
+      const cDoc = await User.findById(counselorId);
+      if (cDoc) finalCounselorName = cDoc.name;
     }
 
     const appointment = new Appointment({
@@ -43,9 +64,10 @@ router.post('/', async (req, res) => {
       studentId: req.user.studentId || '',
       studentEmail: req.user.email,
       counselor: counselorId || null,
-      counselorName: counselorName || 'Assigned Counselor',
+      counselorName: finalCounselorName || 'Assigned Counselor',
       date,
       time,
+      mode: mode || 'In-Person',
       urgency: urgency || 'normal',
       concerns: concerns || '',
       status: 'pending',

@@ -14,6 +14,28 @@ export interface UserProfile {
   createdAt?: string;
 }
 
+export interface CounsellorAvailability {
+  days: string[];
+  timeSlots: string[];
+}
+
+export interface CounsellorProfile {
+  _id: string;
+  id?: string;
+  name: string;
+  email: string;
+  role: 'counsellor';
+  department?: string;
+  specialization?: string;
+  phone?: string;
+  status: 'active' | 'inactive';
+  bio?: string;
+  officeLocation?: string;
+  sessionModes?: string[];
+  availability?: CounsellorAvailability;
+  createdAt?: string;
+}
+
 export interface AppointmentItem {
   _id: string;
   student: string;
@@ -24,6 +46,7 @@ export interface AppointmentItem {
   counselorName?: string;
   date: string;
   time: string;
+  mode?: string;
   urgency: 'normal' | 'moderate' | 'high' | 'critical';
   concerns?: string;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
@@ -152,6 +175,7 @@ export const api = {
   async createAppointment(appointmentData: {
     date: string;
     time: string;
+    mode?: string;
     urgency?: string;
     concerns?: string;
     counselorId?: string;
@@ -167,6 +191,40 @@ export const api = {
     return fetchWithAuth(`/appointments/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    });
+  },
+
+  // Counsellors Directory & Scheduling
+  async getCounsellors(params?: { search?: string; department?: string; specialization?: string }) {
+    const query = new URLSearchParams();
+    if (params?.search) query.append('search', params.search);
+    if (params?.department) query.append('department', params.department);
+    if (params?.specialization) query.append('specialization', params.specialization);
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return fetchWithAuth(`/counsellors${queryString}`);
+  },
+
+  async getCounsellorById(id: string) {
+    return fetchWithAuth(`/counsellors/${id}`);
+  },
+
+  async getCounsellorBookedSlots(counselorId: string, date: string) {
+    return fetchWithAuth(`/counsellors/${counselorId}/booked-slots?date=${encodeURIComponent(date)}`);
+  },
+
+  async updateCounsellorSchedule(scheduleData: {
+    days?: string[];
+    timeSlots?: string[];
+    bio?: string;
+    officeLocation?: string;
+    sessionModes?: string[];
+    phone?: string;
+    department?: string;
+    specialization?: string;
+  }) {
+    return fetchWithAuth('/counsellors/my-schedule', {
+      method: 'PATCH',
+      body: JSON.stringify(scheduleData),
     });
   },
 };

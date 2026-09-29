@@ -34,6 +34,10 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  mode: {
+    type: String,
+    default: 'In-Person',
+  },
   urgency: {
     type: String,
     enum: ['normal', 'moderate', 'high', 'critical'],

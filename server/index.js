@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import appointmentRoutes from './routes/appointments.js';
+import counsellorRoutes from './routes/counsellors.js';
 import User from './models/User.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/counsellors', counsellorRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -37,8 +39,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Seed default Admin if no admin exists
-async function seedDefaultAdmin() {
+// Seed default Admin & Initial Counsellors if none exist
+async function seedDefaultData() {
   try {
     const adminCount = await User.countDocuments({ role: 'admin' });
     if (adminCount === 0) {
@@ -53,8 +55,86 @@ async function seedDefaultAdmin() {
       await defaultAdmin.save();
       console.log('✅ Default Admin created: admin@uniheal.edu (Password: admin123)');
     }
+
+    const counsellorCount = await User.countDocuments({ role: 'counsellor' });
+    if (counsellorCount === 0) {
+      const defaultCounsellors = [
+        {
+          name: 'Dr. Sarah Jenkins',
+          email: 'sarah.jenkins@uniheal.edu',
+          password: 'password123',
+          role: 'counsellor',
+          department: 'Mental Health & Wellbeing',
+          specialization: 'Cognitive Behavioral Therapy (CBT) & Anxiety',
+          phone: '+1 (555) 234-5678',
+          officeLocation: 'Student Wellness Hub, Suite 301',
+          bio: 'Licensed clinical psychologist with 8+ years experience helping university students manage academic pressure, generalized anxiety, and panic disorder.',
+          status: 'active',
+          sessionModes: ['In-Person', 'Online Video Call', 'Confidential Phone'],
+          availability: {
+            days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+            timeSlots: [
+              '09:00 AM - 10:00 AM',
+              '10:30 AM - 11:30 AM',
+              '02:00 PM - 03:00 PM',
+              '03:30 PM - 04:30 PM',
+            ],
+          },
+        },
+        {
+          name: 'Dr. Marcus Vance',
+          email: 'marcus.vance@uniheal.edu',
+          password: 'password123',
+          role: 'counsellor',
+          department: 'Student Psychological Services',
+          specialization: 'Stress Management & Depression Support',
+          phone: '+1 (555) 345-6789',
+          officeLocation: 'East Campus Counseling Center, Office 12B',
+          bio: 'Specialist in student life transitions, depression intervention, emotional resilience, and mindfulness meditation practices.',
+          status: 'active',
+          sessionModes: ['In-Person', 'Online Video Call'],
+          availability: {
+            days: ['Monday', 'Wednesday', 'Thursday', 'Friday'],
+            timeSlots: [
+              '10:00 AM - 11:00 AM',
+              '11:30 AM - 12:30 PM',
+              '01:30 PM - 02:30 PM',
+              '04:00 PM - 05:00 PM',
+            ],
+          },
+        },
+        {
+          name: 'Dr. Priya Sharma',
+          email: 'priya.sharma@uniheal.edu',
+          password: 'password123',
+          role: 'counsellor',
+          department: 'Counseling & Life Skills',
+          specialization: 'Burnout Prevention & Relationship Guidance',
+          phone: '+1 (555) 456-7890',
+          officeLocation: 'Health Center, Level 2, Room 204',
+          bio: 'Compassionate counselor focused on peer dynamics, burnout, self-esteem building, and confidential one-on-one sessions.',
+          status: 'active',
+          sessionModes: ['In-Person', 'Online Video Call', 'Confidential Phone'],
+          availability: {
+            days: ['Tuesday', 'Wednesday', 'Thursday'],
+            timeSlots: [
+              '09:30 AM - 10:30 AM',
+              '11:00 AM - 12:00 PM',
+              '02:00 PM - 03:00 PM',
+              '03:30 PM - 04:30 PM',
+            ],
+          },
+        },
+      ];
+
+      for (const c of defaultCounsellors) {
+        const cUser = new User(c);
+        await cUser.save();
+      }
+      console.log('✅ Default Counsellors seeded successfully.');
+    }
   } catch (err) {
-    console.error('Error seeding default admin:', err.message);
+    console.error('Error seeding initial data:', err.message);
   }
 }
 
@@ -63,7 +143,7 @@ mongoose
   .connect(MONGODB_URI)
   .then(async () => {
     console.log('✅ Connected to MongoDB successfully.');
-    await seedDefaultAdmin();
+    await seedDefaultData();
     app.listen(PORT, () => {
       console.log(`🚀 UniHeal Backend Server running on http://localhost:${PORT}`);
     });
