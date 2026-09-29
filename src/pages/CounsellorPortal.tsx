@@ -4,18 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, Heart, UserCheck, Mail, Lock, Calendar, Clock, Users, AlertTriangle, CheckCircle, ArrowLeft, LogOut } from "lucide-react";
+import { Leaf, Heart, UserCheck, Mail, Lock, Calendar, Clock, Users, AlertTriangle, CheckCircle, ArrowLeft, LogOut, RefreshCw, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { api, getStoredUser, clearStoredAuth, UserProfile, AppointmentItem } from "@/lib/api";
 
 const CounsellorPortal = () => {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    const u = getStoredUser();
+    return !!(u && u.role === 'counsellor');
+  });
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(getStoredUser());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-  // Mock session data
+  // Mock session data (replaced by real data when backend is connected)
   const [sessions] = useState([
     { id: 1, studentId: "ST001", studentName: "John Doe", date: "2024-01-16", time: "10:00 AM", status: "pending", urgency: "high", concerns: "Anxiety and stress about exams" },
     { id: 2, studentId: "ST002", studentName: "Jane Smith", date: "2024-01-16", time: "2:00 PM", status: "pending", urgency: "moderate", concerns: "Feeling overwhelmed with coursework" },
@@ -23,20 +28,34 @@ const CounsellorPortal = () => {
     { id: 4, studentId: "ST004", studentName: "Sarah Wilson", date: "2024-01-17", time: "3:00 PM", status: "pending", urgency: "critical", concerns: "Depression symptoms, urgent support needed" },
   ]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Authentication logic would go here
-    if ((isLogin && email && password) || (!isLogin && email && password && name)) {
+    setLoginError("");
+    setIsLoggingIn(true);
+    try {
+      const res = await api.login({
+        email,
+        password,
+        role: 'counsellor',
+      });
+      if (res.user.role !== 'counsellor') {
+        throw new Error('This account does not have counselor privileges.');
+      }
+      setCurrentUser(res.user);
       setIsLoggedIn(true);
-      console.log("Counsellor authentication:", { email, password, name });
+    } catch (err: any) {
+      setLoginError(err.message || 'Invalid credentials. Please try again.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const handleSignOut = () => {
+    clearStoredAuth();
+    setCurrentUser(null);
     setIsLoggedIn(false);
     setEmail("");
     setPassword("");
-    setName("");
   };
 
   const getUrgencyColor = (urgency: string) => {
@@ -267,53 +286,38 @@ const CounsellorPortal = () => {
   return (
     <div className="min-h-screen bg-gradient-soft flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="relative">
-              <Leaf className="h-8 w-8 text-primary" />
-              <Heart className="h-4 w-4 text-primary absolute -top-1 -right-1" />
-            </div>
-            <h1 className="text-2xl font-bold text-primary">UniHeal</h1>
-          </div>
-          <h2 className="text-xl font-semibold text-foreground mb-2">Counsellor Portal</h2>
-          <p className="text-muted-foreground text-sm">
-            {isLogin ? "Welcome back! Please sign in to continue." : "Join our team of mental health professionals."}
-          </p>
-        </div>
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/')}
+          className="mb-6 gap-2 text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Button>
 
-        <Card className="shadow-hover">
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Card className="shadow-hover border-border/40">
+          <CardHeader className="text-center pb-4">
+            <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <UserCheck className="h-8 w-8 text-primary" />
             </div>
-            <CardTitle>{isLogin ? "Sign In" : "Create Account"}</CardTitle>
+            <CardTitle className="text-2xl">Counsellor Sign In</CardTitle>
             <CardDescription>
-              {isLogin 
-                ? "Access your counsellor dashboard" 
-                : "Register as a licensed counsellor"
-              }
+              Access your UniHeal counselor dashboard and manage student sessions
             </CardDescription>
           </CardHeader>
           
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Dr. Jane Smith"
-                    required
-                  />
+              {loginError && (
+                <div className="p-3 text-sm bg-destructive/10 text-destructive border border-destructive/20 rounded-lg flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span>{loginError}</span>
                 </div>
               )}
-              
+
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -344,34 +348,19 @@ const CounsellorPortal = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full gap-2 mt-6">
-                <Heart className="h-4 w-4" />
-                {isLogin ? "Sign In" : "Create Account"}
+              <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground mb-1 flex items-center gap-1">
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  Admin-Issued Credentials
+                </p>
+                <p>Counselor accounts are issued by the University Administrator. Contact your admin if you need access.</p>
+              </div>
+
+              <Button type="submit" className="w-full gap-2 mt-2" disabled={isLoggingIn}>
+                {isLoggingIn ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Heart className="h-4 w-4" />}
+                {isLoggingIn ? "Signing in..." : "Sign In to Portal"}
               </Button>
             </form>
-
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-primary hover:underline"
-              >
-                {isLogin 
-                  ? "Need an account? Register here" 
-                  : "Already have an account? Sign in"
-                }
-              </button>
-            </div>
-
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => navigate('/')}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                ← Back to Home
-              </button>
-            </div>
           </CardContent>
         </Card>
 

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LogIn, Leaf, Headphones, Shield, Brain, Heart, Activity, Calendar, Clock, CheckCircle, Plus, Trophy, Target, Award, Zap, Star, Crown, Sparkles } from "lucide-react";
+import { ArrowLeft, LogIn, Leaf, Headphones, Shield, Brain, Heart, Activity, Calendar, Clock, CheckCircle, Plus, Trophy, Target, Award, Zap, Star, Crown, Sparkles, AlertTriangle, RefreshCw } from "lucide-react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import sproutCharacter from "@/assets/sprout-character.png";
 import ChatBot from "@/components/ChatBot";
@@ -15,20 +15,22 @@ import EmergencyResources from "@/components/EmergencyResources";
 import QuickResources from "@/components/QuickResources";
 import { Progress } from "@/components/ui/progress";
 import AssessmentModal from "@/components/AssessmentModal";
+import { api, getStoredUser, clearStoredAuth, UserProfile } from "@/lib/api";
 
 const StudentPortal = () => {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [credentials, setCredentials] = useState({ studentId: "", password: "" });
-  const [signUpData, setSignUpData] = useState({ 
-    studentId: "", 
-    email: "", 
-    password: "", 
-    confirmPassword: "", 
-    fullName: "",
-    phoneNumber: ""
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(getStoredUser());
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    const u = getStoredUser();
+    return !!(u && u.role === 'student');
   });
+
+  // Login form
+  const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
   const [showAssessment, setShowAssessment] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
@@ -40,25 +42,36 @@ const StudentPortal = () => {
     concerns: "",
     urgency: "normal"
   });
-  const [sessions, setSessions] = useState([
-    { id: 1, date: "2024-01-15", time: "10:00 AM", status: "pending", counselor: "Dr. Smith" },
-    { id: 2, date: "2024-01-08", time: "02:00 PM", status: "completed", counselor: "Dr. Johnson" },
-  ]);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+  const [bookingSuccess, setBookingSuccess] = useState("");
 
-  // Check for session persistence on mount
+  // Load appointments from backend on login
   useEffect(() => {
-    const savedSession = localStorage.getItem('uniheal-session');
-    if (savedSession) {
-      const { studentId, timestamp } = JSON.parse(savedSession);
-      // Session valid for 24 hours
-      if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
-        setCredentials({ studentId, password: "****" });
-        setIsLoggedIn(true);
-      } else {
-        localStorage.removeItem('uniheal-session');
-      }
+    if (isLoggedIn && currentUser) {
+      setBookingDetails(prev => ({
+        ...prev,
+        name: currentUser.name || "",
+        email: currentUser.email || "",
+        phone: currentUser.phone || "",
+      }));
+      fetchSessions();
     }
-  }, []);
+  }, [isLoggedIn, currentUser]);
+
+  const fetchSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const res = await api.getAppointments();
+      setSessions(res.appointments || []);
+    } catch (err) {
+      // Backend not connected - show empty state gracefully
+      setSessions([]);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -67,42 +80,35 @@ const StudentPortal = () => {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock authentication - in real app, validate against backend
-    if (credentials.studentId && credentials.password) {
+    setLoginError("");
+    setIsLoggingIn(true);
+    try {
+      const res = await api.login({
+        identifier: loginIdentifier,
+        password: loginPassword,
+        role: 'student',
+      });
+      if (res.user.role !== 'student') {
+        throw new Error('This account is not a student account. Please use the correct portal.');
+      }
+      setCurrentUser(res.user);
       setIsLoggedIn(true);
-      // Save session for persistence
-      localStorage.setItem('uniheal-session', JSON.stringify({
-        studentId: credentials.studentId,
-        timestamp: Date.now()
-      }));
-    }
-  };
-
-  const handleSignUp = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Validation
-    if (signUpData.password !== signUpData.confirmPassword) {
-      alert("Passwords don't match!");
-      return;
-    }
-    if (signUpData.studentId && signUpData.email && signUpData.password && signUpData.fullName) {
-      // Mock sign up - in real app, create account in backend
-      setCredentials({ studentId: signUpData.studentId, password: signUpData.password });
-      setIsLoggedIn(true);
-      // Save session for persistence
-      localStorage.setItem('uniheal-session', JSON.stringify({
-        studentId: signUpData.studentId,
-        timestamp: Date.now()
-      }));
+    } catch (err: any) {
+      setLoginError(err.message || 'Invalid credentials. Please check your Student ID/Email and password.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const handleSignOut = () => {
+    clearStoredAuth();
+    setCurrentUser(null);
     setIsLoggedIn(false);
-    localStorage.removeItem('uniheal-session');
-    setCredentials({ studentId: "", password: "" });
+    setLoginIdentifier("");
+    setLoginPassword("");
+    setSessions([]);
   };
 
   // Helper functions
@@ -183,134 +189,56 @@ const StudentPortal = () => {
                 </div>
                 <CardTitle className="text-2xl">Student Portal</CardTitle>
                 <CardDescription>
-                  {isSignUp ? "Create your account to get started" : "Sign in to access your personal mental health dashboard"}
+                  Sign in with your Student ID or Email to access your personal mental health dashboard
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {!isSignUp ? (
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="studentId">Student ID</Label>
-                      <Input
-                        id="studentId"
-                        type="text"
-                        placeholder="Enter your student ID"
-                        value={credentials.studentId}
-                        onChange={(e) => setCredentials(prev => ({ ...prev, studentId: e.target.value }))}
-                        required
-                      />
+                <form onSubmit={handleLogin} className="space-y-4">
+                  {loginError && (
+                    <div className="p-3 text-sm bg-destructive/10 text-destructive border border-destructive/20 rounded-lg flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span>{loginError}</span>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="Enter your password"
-                        value={credentials.password}
-                        onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <Button type="submit" className="w-full gap-2">
-                      <LogIn className="h-4 w-4" />
-                      Sign In Securely
-                    </Button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleSignUp} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name</Label>
-                      <Input
-                        id="fullName"
-                        type="text"
-                        placeholder="Enter your full name"
-                        value={signUpData.fullName}
-                        onChange={(e) => setSignUpData(prev => ({ ...prev, fullName: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="studentIdSignUp">Student ID</Label>
-                      <Input
-                        id="studentIdSignUp"
-                        type="text"
-                        placeholder="Enter your student ID"
-                        value={signUpData.studentId}
-                        onChange={(e) => setSignUpData(prev => ({ ...prev, studentId: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter your university email"
-                        value={signUpData.email}
-                        onChange={(e) => setSignUpData(prev => ({ ...prev, email: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phoneNumber">Phone Number (Optional)</Label>
-                      <Input
-                        id="phoneNumber"
-                        type="tel"
-                        placeholder="Enter your phone number"
-                        value={signUpData.phoneNumber}
-                        onChange={(e) => setSignUpData(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="passwordSignUp">Password</Label>
-                      <Input
-                        id="passwordSignUp"
-                        type="password"
-                        placeholder="Create a secure password"
-                        value={signUpData.password}
-                        onChange={(e) => setSignUpData(prev => ({ ...prev, password: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirm Password</Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        placeholder="Confirm your password"
-                        value={signUpData.confirmPassword}
-                        onChange={(e) => setSignUpData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        required
-                      />
-                    </div>
-                    <Button type="submit" className="w-full gap-2">
-                      <Shield className="h-4 w-4" />
-                      Create Account
-                    </Button>
-                  </form>
-                )}
-
-                <div className="mt-6 text-center space-y-2">
-                  <Button 
-                    variant="link" 
-                    onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-primary p-0 h-auto"
-                  >
-                    {isSignUp ? "Already have an account? Sign in here" : "New student? Create account here"}
-                  </Button>
-                  {!isSignUp && (
-                    <p className="text-sm text-muted-foreground">
-                      Forgot your password?{" "}
-                      <Button variant="link" className="p-0 h-auto text-primary">
-                        Reset here
-                      </Button>
-                    </p>
                   )}
-                  <Badge variant="secondary" className="gap-1">
-                    <Shield className="h-3 w-3" />
-                    Secure & Confidential
-                  </Badge>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="studentId">Student ID or Email</Label>
+                    <Input
+                      id="studentId"
+                      type="text"
+                      placeholder="e.g. STU-2025-01 or your@university.edu"
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter your password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full gap-2" disabled={isLoggingIn}>
+                    {isLoggingIn ? <RefreshCw className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
+                    {isLoggingIn ? "Signing in..." : "Sign In Securely"}
+                  </Button>
+                </form>
+
+                <div className="mt-6">
+                  <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                    <p className="font-semibold text-foreground mb-1">🔒 Admin-Issued Credentials</p>
+                    <p>Your account is created by the University Administration. Contact your institution if you don't have credentials.</p>
+                  </div>
+                  <div className="mt-3 flex justify-center">
+                    <Badge variant="secondary" className="gap-1">
+                      <Shield className="h-3 w-3" />
+                      Secure & Confidential
+                    </Badge>
+                  </div>
               </CardContent>
             </Card>
 
@@ -351,7 +279,7 @@ const StudentPortal = () => {
               </div>
               <div>
                 <h1 className="font-semibold text-primary">UniHeal Dashboard</h1>
-                <p className="text-xs text-muted-foreground">Student #{credentials.studentId}</p>
+                <p className="text-xs text-muted-foreground">{currentUser?.name || 'Student Portal'}</p>
               </div>
             </div>
 
@@ -557,35 +485,48 @@ const StudentPortal = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {sessions.map((session) => (
-                  <div 
-                    key={session.id} 
-                    className={`p-4 rounded-lg border ${
-                      session.status === 'pending' 
-                        ? 'bg-blue-50 border-blue-200' 
-                        : 'bg-green-50 border-green-200'
-                    } hover-scale animate-fade-in`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm">
-                          {new Date(session.date).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{session.time} - {session.counselor}</p>
-                      </div>
-                      <Badge 
-                        variant={session.status === 'pending' ? 'secondary' : 'default'}
-                        className={session.status === 'completed' ? 'bg-green-500' : ''}
-                      >
-                        {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
-                      </Badge>
-                    </div>
+                {loadingSessions ? (
+                  <div className="py-8 text-center text-muted-foreground flex flex-col items-center gap-2">
+                    <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-sm">Loading sessions...</span>
                   </div>
-                ))}
+                ) : sessions.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground">
+                    <Calendar className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm font-medium">No sessions yet</p>
+                    <p className="text-xs">Book your first counseling session below</p>
+                  </div>
+                ) : (
+                  sessions.map((session) => (
+                    <div 
+                      key={session._id || session.id} 
+                      className={`p-4 rounded-lg border ${
+                        session.status === 'pending' 
+                          ? 'bg-blue-50 border-blue-200' 
+                          : 'bg-green-50 border-green-200'
+                      } hover-scale animate-fade-in`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">
+                            {new Date(session.date).toLocaleDateString('en-US', { 
+                              weekday: 'long', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{session.time} - {session.counselorName || session.counselor || 'Assigned Counselor'}</p>
+                        </div>
+                        <Badge 
+                          variant={session.status === 'pending' ? 'secondary' : 'default'}
+                          className={session.status === 'completed' ? 'bg-green-500' : ''}
+                        >
+                          {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
                 
                 <div className="text-center pt-4">
                   <Button 
