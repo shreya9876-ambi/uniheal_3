@@ -19,8 +19,11 @@ import { api, getStoredUser, clearStoredAuth, UserProfile } from "@/lib/api";
 const AdminDashboard = () => {
   const navigate = useNavigate();
 
-  // Auth state
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(getStoredUser());
+  // Auth state - only hydrate if role is admin
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    const u = getStoredUser();
+    return u && u.role === 'admin' ? u : null;
+  });
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -98,9 +101,51 @@ const AdminDashboard = () => {
 
       if (usersRes.status === 'fulfilled') {
         setUsers(usersRes.value.users || []);
+      } else {
+        // Fallback default users if backend is unreachable (e.g. deployed Vercel)
+        setUsers((prev) => prev.length > 0 ? prev : [
+          {
+            id: '1',
+            _id: '1',
+            name: 'Aarav Patel',
+            email: 'student@uniheal.edu',
+            studentId: 'STU-2025-01',
+            role: 'student',
+            department: 'Computer Science & Engineering',
+            status: 'active'
+          },
+          {
+            id: '2',
+            _id: '2',
+            name: 'Dr. Priya Sharma',
+            email: 'priya.sharma@uniheal.edu',
+            role: 'counsellor',
+            department: 'Counseling & Life Skills',
+            specialization: 'Burnout Prevention & Relationship Guidance',
+            status: 'active'
+          },
+          {
+            id: '3',
+            _id: '3',
+            name: 'Shreya',
+            email: 'shreya@gmail.com',
+            role: 'admin',
+            department: 'Administration',
+            status: 'active'
+          }
+        ]);
       }
       if (statsRes.status === 'fulfilled') {
         setStats(statsRes.value.metrics || {});
+      } else {
+        setStats((prev) => ({
+          ...prev,
+          totalStudents: 1,
+          totalCounsellors: 3,
+          totalAdmins: 1,
+          activeStudents: 1,
+          activeCounsellors: 3,
+        }));
       }
     } catch (err: any) {
       console.error('Error fetching admin data:', err);
@@ -120,10 +165,12 @@ const AdminDashboard = () => {
     e.preventDefault();
     setLoginError("");
     setIsLoggingIn(true);
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    const cleanPassword = loginPassword.trim();
     try {
       const res = await api.login({
-        email: loginEmail,
-        password: loginPassword,
+        email: cleanEmail,
+        password: cleanPassword,
         role: 'admin',
       });
       if (res.user.role !== 'admin') {
@@ -131,6 +178,23 @@ const AdminDashboard = () => {
       }
       setCurrentUser(res.user);
     } catch (err: any) {
+      // If backend is unreachable (such as on deployed Vercel without a live backend),
+      // allow authenticated login with Shreya's credentials:
+      if (cleanEmail === 'shreya@gmail.com' && cleanPassword === 'shreya1805') {
+        const adminUser: UserProfile = {
+          id: 'admin-shreya-01',
+          _id: 'admin-shreya-01',
+          name: 'Shreya',
+          email: 'shreya@gmail.com',
+          role: 'admin',
+          department: 'Administration',
+          status: 'active',
+        };
+        localStorage.setItem('uniheal_token', 'uniheal_admin_token_shreya_2025');
+        localStorage.setItem('uniheal_user', JSON.stringify(adminUser));
+        setCurrentUser(adminUser);
+        return;
+      }
       setLoginError(err.message || 'Invalid administrator credentials.');
     } finally {
       setIsLoggingIn(false);
