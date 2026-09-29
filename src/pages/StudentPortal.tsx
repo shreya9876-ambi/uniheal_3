@@ -239,6 +239,7 @@ const StudentPortal = () => {
                       Secure & Confidential
                     </Badge>
                   </div>
+                </div>
               </CardContent>
             </Card>
 
