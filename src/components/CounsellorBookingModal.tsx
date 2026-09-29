@@ -21,6 +21,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { api, CounsellorProfile } from "@/lib/api";
+import counsellorPriyaImg from "@/assets/counsellor-priya.jpg";
 import { format, isBefore, startOfToday } from "date-fns";
 
 interface CounsellorBookingModalProps {
@@ -260,9 +261,28 @@ export default function CounsellorBookingModal({
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm">
-                          {c.name.charAt(0).toUpperCase()}
-                        </div>
+                        {(() => {
+                          const isIndianLady = c.avatar || 
+                            c.name.toLowerCase().includes("priya") || 
+                            c.name.toLowerCase().includes("sharma") || 
+                            c.name.toLowerCase().includes("ananya") || 
+                            c.name.toLowerCase().includes("sneha") ||
+                            c.name.toLowerCase().includes("pooja") ||
+                            c.name.toLowerCase().includes("meera");
+                          const photo = c.avatar || (isIndianLady ? counsellorPriyaImg : null);
+
+                          return photo ? (
+                            <img
+                              src={photo}
+                              alt={c.name}
+                              className="w-10 h-10 rounded-full object-cover shadow-xs flex-shrink-0 border border-teal-300"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm">
+                              {c.name.charAt(0).toUpperCase()}
+                            </div>
+                          );
+                        })()}
                         <div className="min-w-0 flex-1">
                           <h4 className="font-semibold text-sm truncate text-gray-900">{c.name}</h4>
                           <p className="text-xs text-primary font-medium truncate">
@@ -286,25 +306,49 @@ export default function CounsellorBookingModal({
               {/* Active Counsellor Profile Summary Card */}
               {activeCounsellor && (
                 <div className="bg-gradient-to-r from-teal-50/70 to-emerald-50/70 border border-teal-200/70 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-teal-950">{activeCounsellor.name}</span>
-                      <Badge variant="outline" className="bg-white/80 text-[10px] text-teal-800 border-teal-300">
-                        <ShieldCheck className="h-3 w-3 mr-1 text-teal-600" />
-                        Verified Counsellor
-                      </Badge>
+                  <div className="flex items-center gap-3.5">
+                    {(() => {
+                      const isIndianLady = activeCounsellor.avatar || 
+                        activeCounsellor.name.toLowerCase().includes("priya") || 
+                        activeCounsellor.name.toLowerCase().includes("sharma") || 
+                        activeCounsellor.name.toLowerCase().includes("ananya") || 
+                        activeCounsellor.name.toLowerCase().includes("sneha") ||
+                        activeCounsellor.name.toLowerCase().includes("pooja") ||
+                        activeCounsellor.name.toLowerCase().includes("meera");
+                      const photo = activeCounsellor.avatar || (isIndianLady ? counsellorPriyaImg : null);
+
+                      return photo ? (
+                        <img
+                          src={photo}
+                          alt={activeCounsellor.name}
+                          className="w-12 h-12 rounded-xl object-cover shadow-xs border-2 border-white ring-1 ring-teal-300 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold text-base flex-shrink-0">
+                          {activeCounsellor.name.charAt(0).toUpperCase()}
+                        </div>
+                      );
+                    })()}
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-teal-950">{activeCounsellor.name}</span>
+                        <Badge variant="outline" className="bg-white/80 text-[10px] text-teal-800 border-teal-300">
+                          <ShieldCheck className="h-3 w-3 mr-1 text-teal-600" />
+                          Verified Counsellor
+                        </Badge>
+                      </div>
+                      {activeCounsellor.officeLocation && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-teal-600" />
+                          {activeCounsellor.officeLocation}
+                        </p>
+                      )}
+                      {activeCounsellor.bio && (
+                        <p className="text-xs text-gray-600 line-clamp-2 italic pt-0.5">
+                          "{activeCounsellor.bio}"
+                        </p>
+                      )}
                     </div>
-                    {activeCounsellor.officeLocation && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-teal-600" />
-                        {activeCounsellor.officeLocation}
-                      </p>
-                    )}
-                    {activeCounsellor.bio && (
-                      <p className="text-xs text-gray-600 line-clamp-2 italic pt-0.5">
-                        "{activeCounsellor.bio}"
-                      </p>
-                    )}
                   </div>
                   <div className="flex flex-wrap gap-1 text-[11px]">
                     <span className="text-xs text-muted-foreground mr-1 self-center">Working Days:</span>

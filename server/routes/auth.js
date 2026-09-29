@@ -66,6 +66,7 @@ router.post('/login', async (req, res) => {
         specialization: user.specialization,
         phone: user.phone,
         status: user.status,
+        avatar: user.avatar || '',
       },
     });
   } catch (err) {

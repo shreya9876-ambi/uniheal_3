@@ -19,6 +19,7 @@ import {
   Users
 } from "lucide-react";
 import { api, CounsellorProfile } from "@/lib/api";
+import counsellorPriyaImg from "@/assets/counsellor-priya.jpg";
 
 interface CounsellorsDirectoryProps {
   onBookWithCounsellor: (counsellor: CounsellorProfile) => void;
@@ -189,10 +190,33 @@ export default function CounsellorsDirectory({
                   {/* Card Header / Gradient Banner */}
                   <div className="bg-gradient-to-r from-[#FFB3BA]/30 via-white to-[#FFE156]/20 p-5 border-b border-border/60 relative">
                     <div className="flex items-start gap-3.5">
-                      {/* Initials Avatar */}
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF677D] to-[#392F5A] text-white flex items-center justify-center font-bold text-xl shadow-md flex-shrink-0">
-                        {counsellor.name.charAt(0).toUpperCase()}
-                      </div>
+                      {/* Photo or Initials Avatar */}
+                      {(() => {
+                        const photo = counsellor.avatar || 
+                          (counsellor.name.toLowerCase().includes("priya") || 
+                           counsellor.name.toLowerCase().includes("sharma") || 
+                           counsellor.name.toLowerCase().includes("ananya") || 
+                           counsellor.name.toLowerCase().includes("sneha") ||
+                           counsellor.name.toLowerCase().includes("pooja") ||
+                           counsellor.name.toLowerCase().includes("meera")
+                            ? counsellorPriyaImg 
+                            : null);
+
+                        return photo ? (
+                          <div className="relative flex-shrink-0">
+                            <img
+                              src={photo}
+                              alt={counsellor.name}
+                              className="w-14 h-14 rounded-2xl object-cover shadow-md border-2 border-white ring-2 ring-primary/20"
+                            />
+                            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" title="Active Counsellor" />
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF677D] to-[#392F5A] text-white flex items-center justify-center font-bold text-xl shadow-md flex-shrink-0">
+                            {counsellor.name.charAt(0).toUpperCase()}
+                          </div>
+                        );
+                      })()}
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">

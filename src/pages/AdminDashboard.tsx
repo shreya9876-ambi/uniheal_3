@@ -327,12 +327,6 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground space-y-1">
-                  <p className="font-semibold text-foreground">Default Credentials:</p>
-                  <p>Email: <code className="bg-background px-1 py-0.5 rounded">admin@uniheal.edu</code></p>
-                  <p>Password: <code className="bg-background px-1 py-0.5 rounded">admin123</code></p>
-                </div>
-
                 <Button type="submit" className="w-full gap-2" disabled={isLoggingIn}>
                   {isLoggingIn ? <RefreshCw className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
                   {isLoggingIn ? "Authenticating..." : "Sign In as Admin"}

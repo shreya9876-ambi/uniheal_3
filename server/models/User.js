@@ -59,6 +59,11 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: 'UniHeal Wellness Center, Counseling Suite 2',
   },
+  avatar: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   sessionModes: {
     type: [String],
     default: ['In-Person', 'Online Video Call', 'Confidential Phone'],

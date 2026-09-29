@@ -11,6 +11,7 @@ export interface UserProfile {
   specialization?: string;
   phone?: string;
   status: 'active' | 'inactive';
+  avatar?: string;
   createdAt?: string;
 }
 
@@ -33,6 +34,7 @@ export interface CounsellorProfile {
   officeLocation?: string;
   sessionModes?: string[];
   availability?: CounsellorAvailability;
+  avatar?: string;
   createdAt?: string;
 }
 

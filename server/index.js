@@ -114,6 +114,7 @@ async function seedDefaultData() {
           officeLocation: 'Health Center, Level 2, Room 204',
           bio: 'Compassionate counselor focused on peer dynamics, burnout, self-esteem building, and confidential one-on-one sessions.',
           status: 'active',
+          avatar: '/counsellor-priya.jpg',
           sessionModes: ['In-Person', 'Online Video Call', 'Confidential Phone'],
           availability: {
             days: ['Tuesday', 'Wednesday', 'Thursday'],
@@ -132,6 +133,12 @@ async function seedDefaultData() {
         await cUser.save();
       }
       console.log('✅ Default Counsellors seeded successfully.');
+    } else {
+      // Update any existing Dr. Priya Sharma record to have the portrait avatar
+      await User.updateMany(
+        { $or: [{ name: /Priya/i }, { email: /priya/i }] },
+        { $set: { avatar: '/counsellor-priya.jpg' } }
+      );
     }
   } catch (err) {
     console.error('Error seeding initial data:', err.message);

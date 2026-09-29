@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api, getStoredUser, clearStoredAuth, UserProfile, AppointmentItem } from "@/lib/api";
+import counsellorPriyaImg from "@/assets/counsellor-priya.jpg";
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -236,9 +237,28 @@ const CounsellorPortal = () => {
           <div className="container mx-auto px-4 py-3.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-                  <UserCheck className="h-6 w-6 text-primary" />
-                </div>
+                {(() => {
+                  const isIndianLady = currentUser?.avatar || 
+                    (currentUser?.name && (
+                      currentUser.name.toLowerCase().includes("priya") || 
+                      currentUser.name.toLowerCase().includes("sharma") || 
+                      currentUser.name.toLowerCase().includes("ananya") || 
+                      currentUser.name.toLowerCase().includes("sneha")
+                    ));
+                  const photo = currentUser?.avatar || (isIndianLady ? counsellorPriyaImg : null);
+
+                  return photo ? (
+                    <img
+                      src={photo}
+                      alt={currentUser?.name || "Counsellor"}
+                      className="w-11 h-11 rounded-xl object-cover border-2 border-white shadow-xs ring-2 ring-primary/20 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                      <UserCheck className="h-6 w-6 text-primary" />
+                    </div>
+                  );
+                })()}
                 <div>
                   <h1 className="text-lg font-bold text-gray-900 leading-tight">UniHeal Counsellor Portal</h1>
                   <p className="text-xs text-muted-foreground">
@@ -627,10 +647,20 @@ const CounsellorPortal = () => {
                 {/* 3. Office & Profile Details */}
                 <Card className="bg-white shadow-xs">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold">3. Consultation Profile & Office Details</CardTitle>
-                    <CardDescription className="text-xs">
-                      Displayed on your public card in the student directory.
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-sm font-semibold">3. Consultation Profile & Office Details</CardTitle>
+                        <CardDescription className="text-xs">
+                          Displayed on your public card in the student directory.
+                        </CardDescription>
+                      </div>
+                      <img
+                        src={currentUser?.avatar || counsellorPriyaImg}
+                        alt="Profile"
+                        className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-xs ring-2 ring-primary/20"
+                        title="Your Profile Picture"
+                      />
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid sm:grid-cols-2 gap-4">
