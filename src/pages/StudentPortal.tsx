@@ -20,11 +20,11 @@ import { api, getStoredUser, clearStoredAuth, UserProfile, CounsellorProfile, Ap
 
 const StudentPortal = () => {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(getStoredUser());
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    const u = getStoredUser();
-    return !!(u && u.role === 'student');
-  });
+
+  // Always start logged-out; validate token on mount to prevent auto-login from stale localStorage
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [validatingSession, setValidatingSession] = useState(true);
 
   // Login form
   const [loginIdentifier, setLoginIdentifier] = useState("");
@@ -49,18 +49,39 @@ const StudentPortal = () => {
     totalScore: number;
     riskLevel: 'Low' | 'Moderate' | 'High' | 'Critical';
     dateTaken: string;
-  } | null>(() => {
-    const u = getStoredUser();
-    const key = `uniheal_assessment_${u?.id || u?._id || 'guest'}`;
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try { return JSON.parse(saved); } catch { return null; }
-    }
-    return null;
-  });
+  } | null>(null);
 
-  // Load counsellors on component mount
+  // On mount: validate stored token with backend — never trust localStorage blindly
   useEffect(() => {
+    const validate = async () => {
+      const storedUser = getStoredUser();
+      if (!storedUser || storedUser.role !== 'student') {
+        clearStoredAuth();
+        setValidatingSession(false);
+        return;
+      }
+      try {
+        const res = await api.getMe();
+        if (res.user && res.user.role === 'student') {
+          setCurrentUser(res.user);
+          setIsLoggedIn(true);
+          // Restore assessment result if available
+          const key = `uniheal_assessment_${res.user.id || res.user._id || 'guest'}`;
+          const saved = localStorage.getItem(key);
+          if (saved) {
+            try { setAssessmentResult(JSON.parse(saved)); } catch { /* ignore */ }
+          }
+        } else {
+          clearStoredAuth();
+        }
+      } catch {
+        // Token invalid / expired — force re-login
+        clearStoredAuth();
+      } finally {
+        setValidatingSession(false);
+      }
+    };
+    validate();
     fetchCounsellors();
   }, []);
 
@@ -165,6 +186,18 @@ const StudentPortal = () => {
     setSelectedCounsellorForBooking(counsellors.length > 0 ? counsellors[0] : null);
     setShowBookingModal(true);
   };
+
+  // Show a minimal loading screen while validating the stored token
+  if (validatingSession) {
+    return (
+      <div className="min-h-screen bg-gradient-soft flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <RefreshCw className="h-7 w-7 animate-spin text-primary" />
+          <p className="text-sm font-medium">Checking session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
