@@ -240,23 +240,11 @@ const StudentPortal = () => {
 
                 {/* Demo Student Credentials */}
                 <div className="mt-5 p-3.5 bg-gradient-to-br from-primary/5 to-cyan-500/10 border border-primary/25 rounded-xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-primary flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-primary">
                       Demo Student Credentials:
                     </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setLoginIdentifier("STU-2025-01");
-                        setLoginPassword("password123");
-                      }}
-                      className="h-6 px-2 text-[11px] text-primary border-primary/30 hover:bg-primary/10 rounded-full font-medium"
-                    >
-                      Fill Demo
-                    </Button>
                   </div>
                   <div className="text-xs space-y-1.5 text-muted-foreground">
                     <div className="flex items-center justify-between">
