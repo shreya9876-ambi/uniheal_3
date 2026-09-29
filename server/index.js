@@ -140,6 +140,28 @@ async function seedDefaultData() {
         { $set: { avatar: '/counsellor-priya.jpg' } }
       );
     }
+
+    // Seed default Demo Student if none exists
+    const demoStudentExists = await User.findOne({
+      $or: [
+        { studentId: 'STU-2025-01' },
+        { email: 'student@uniheal.edu' },
+      ],
+    });
+    if (!demoStudentExists) {
+      const demoStudent = new User({
+        name: 'Aarav Patel',
+        email: 'student@uniheal.edu',
+        studentId: 'STU-2025-01',
+        password: 'password123',
+        role: 'student',
+        department: 'Computer Science & Engineering',
+        phone: '+91 98765 43210',
+        status: 'active',
+      });
+      await demoStudent.save();
+      console.log('✅ Demo Student seeded: STU-2025-01 / student@uniheal.edu (Password: password123)');
+    }
   } catch (err) {
     console.error('Error seeding initial data:', err.message);
   }
